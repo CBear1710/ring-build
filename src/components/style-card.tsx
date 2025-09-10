@@ -13,7 +13,7 @@ const STYLE_OPTIONS = [
   { key: "wide_plain", label: "Wide Plain",  src: "/rings/wide-plain.png" },
 ]
 
-export default function StyleCard({ price = 1000 }: { price?: number }) {
+export default function StyleCard() {
   const [active, setActive] = useState("plain")
 
   return (
@@ -26,7 +26,7 @@ export default function StyleCard({ price = 1000 }: { price?: number }) {
               {STYLE_OPTIONS.find(o => o.key === active)?.label}
             </span>
           </div>
-          <div className="text-sm font-semibold text-muted-foreground">${price}</div>
+          
         </div>
       </CardHeader>
 
@@ -42,7 +42,7 @@ export default function StyleCard({ price = 1000 }: { price?: number }) {
                 className={[
                   "relative flex-shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
                   selected ? "border-black" : "border-gray-300",
-                  "focus:outline-none focus:ring-2 focus:ring-black/40"
+                  "focus:outline-none focus:ring-0 focus:ring-black/40"
                 ].join(" ")}
               >
                 {/* rings image */}
