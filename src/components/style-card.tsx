@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 const STYLE_OPTIONS = [
-  { key: "plain", label: "Plain" },
-  { key: "cathedral", label: "Cathedral" },
-  { key: "knife", label: "Knife Edge" },
-  { key: "split", label: "Split" },
-  { key: "twisted", label: "Twisted" },
-  { key: "wide_plain", label: "Wide Plain" },
+  { key: "plain",      label: "Plain",       src: "/rings/plain.png" },
+  { key: "cathedral",  label: "Cathedral",   src: "/rings/cathedral.png" },
+  { key: "knife",      label: "Knife Edge",  src: "/rings/knife-edge.png" },
+  { key: "split",      label: "Split",       src: "/rings/split.png" },
+  { key: "twisted",    label: "Twisted",     src: "/rings/twisted.png" },
+  { key: "wide_plain", label: "Wide Plain",  src: "/rings/wide-plain.png" },
 ]
 
 export default function StyleCard({ price = 1000 }: { price?: number }) {
@@ -31,22 +32,33 @@ export default function StyleCard({ price = 1000 }: { price?: number }) {
 
       <CardContent className="pt-0">
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {STYLE_OPTIONS.map((opt, i) => (
-            <button
-              key={opt.key}
-              onClick={() => setActive(opt.key)}
-              title={opt.label}
-              className={[
-                "flex-shrink-0 w-14 h-14 rounded-full border-2 grid place-items-center transition",
-                active === opt.key ? "border-black" : "border-gray-300"
-              ].join(" ")}
-            >
-              {/* placeholder (swap with <img /> later) */}
-              <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-sm">
-                {i + 1}
-              </div>
-            </button>
-          ))}
+          {STYLE_OPTIONS.map((opt) => {
+            const selected = active === opt.key
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setActive(opt.key)}
+                title={opt.label}
+                className={[
+                  "relative flex-shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
+                  selected ? "border-black" : "border-gray-300",
+                  "focus:outline-none focus:ring-2 focus:ring-black/40"
+                ].join(" ")}
+              >
+                {/* rings image */}
+                
+                  <Image
+                    src={opt.src}
+                    alt={opt.label}
+                    fill
+                    sizes="56px"
+                    className="object-cover object-center scale-90"
+                    priority
+                  />
+                
+              </button>
+            )
+          })}
         </div>
       </CardContent>
     </Card>
