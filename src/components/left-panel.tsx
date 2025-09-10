@@ -33,7 +33,7 @@ const PURITY_OPTIONS = [
 export default function LeftPanel() {
   const [tab, setTab] = useState<"setting"|"stone"|"shank">("setting")
 
-  // (kept for future use) defaults are the first options
+  // (kept for future use) 
   const defaultStyle = useMemo(() => STYLE_OPTIONS[0].key, [])
   const defaultMetal = useMemo(() => METAL_OPTIONS[0].key, [])
   const defaultPurity = useMemo(() => PURITY_OPTIONS[0].key, [])
@@ -43,7 +43,7 @@ export default function LeftPanel() {
   const [metal, setMetal] = useState<string>(defaultMetal)
   const [purity, setPurity] = useState<string | null>(defaultPurity)
 
-  // counter used to force-remount child cards on reset
+  // counter  force-remount child cards on reset
   const [resetCount, setResetCount] = useState(0)
 
   const onReset = () => {
@@ -51,12 +51,12 @@ export default function LeftPanel() {
     setStyle(defaultStyle)
     setMetal(defaultMetal)
     setPurity(defaultPurity)
-    setResetCount((c) => c + 1)          // 👈 remount children → back to their defaults
+    setResetCount((c) => c + 1)          
   }
 
   return (
     <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="w-full">
-      {/* Tabs row + Reset (sizes unchanged) */}
+      
       <div className="flex items-center gap-2">
         <TabsList className="grid grid-cols-3 rounded-full bg-secondary p-1 h-10">
           <TabsTrigger
@@ -79,7 +79,7 @@ export default function LeftPanel() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Reset button (icon-only pill). Size matches h-10 row height */}
+        
         <Button
           type="button"
           onClick={onReset}
@@ -93,7 +93,7 @@ export default function LeftPanel() {
       </div>
 
       <TabsContent value="setting" className="mt-4 space-y-4">
-        {/* keys include resetCount so these remount on reset */}
+        
         <StyleCard key={`style-${resetCount}`} />
         <MetalCard  key={`metal-${resetCount}`} />
 
