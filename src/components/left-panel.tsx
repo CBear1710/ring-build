@@ -1,12 +1,13 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState,useEffect,useMemo } from "react"
+import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import StyleCard from "@/components/style-card"
 import MetalCard from "@/components/metal"
 import { Button } from "@/components/ui/button"
 import { Settings2, Gem, Circle, RotateCcw } from "lucide-react"
+import { useConfigStore } from "@/store/configurator"  
 
 const STYLE_OPTIONS = [
   { key: "plain", label: "Plain" },
@@ -26,37 +27,32 @@ const METAL_OPTIONS = [
 
 const PURITY_OPTIONS = [
   { key: "9k", label: "9K" },
-  { key: "14k", label: "14K (+$800)" },
-  { key: "18k", label: "18K (+$1000)" },
+  { key: "14k", label: "14K" },
+  { key: "18k", label: "18K" },
 ]
 
 export default function LeftPanel() {
-  const [tab, setTab] = useState<"setting"|"stone"|"shank">("setting")
+  //  read/write from store 
+  const tab    = useConfigStore((s) => s.tab)
+  const setTab = useConfigStore((s) => s.setTab)
+  const reset  = useConfigStore((s) => s.reset)
 
-  // (kept for future use) 
-  const defaultStyle = useMemo(() => STYLE_OPTIONS[0].key, [])
-  const defaultMetal = useMemo(() => METAL_OPTIONS[0].key, [])
-  const defaultPurity = useMemo(() => PURITY_OPTIONS[0].key, [])
+  // composite string to change keys (remount) on reset
+  const selectionKey = useConfigStore(
+    (s) => `${s.style}|${s.metal}|${s.purity ?? "null"}`
+  )
 
-  // (kept for future use) parent-held selection state
-  const [style, setStyle] = useState<string>(defaultStyle)
-  const [metal, setMetal] = useState<string>(defaultMetal)
-  const [purity, setPurity] = useState<string | null>(defaultPurity)
 
-  // counter  force-remount child cards on reset
   const [resetCount, setResetCount] = useState(0)
 
   const onReset = () => {
-    setTab("setting")
-    setStyle(defaultStyle)
-    setMetal(defaultMetal)
-    setPurity(defaultPurity)
-    setResetCount((c) => c + 1)          
+    reset()                
+    setTab("setting")    
+    setResetCount((c) => c + 1) 
   }
 
   return (
     <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="w-full">
-      
       <div className="flex items-center gap-2">
         <TabsList className="grid grid-cols-3 rounded-full bg-secondary p-1 h-10">
           <TabsTrigger
@@ -94,8 +90,8 @@ export default function LeftPanel() {
 
       <TabsContent value="setting" className="mt-4 space-y-4">
         
-        <StyleCard key={`style-${resetCount}`} />
-        <MetalCard  key={`metal-${resetCount}`} />
+        <StyleCard key={`style-${selectionKey}-${resetCount}`} />
+        <MetalCard  key={`metal-${selectionKey}-${resetCount}`} />
 
         <Button
           onClick={()=>setTab("stone")}
