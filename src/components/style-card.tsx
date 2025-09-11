@@ -43,7 +43,7 @@ export default function StyleCard() {
                 className={[
                   "relative flex-shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
                   selected ? "border-black" : "border-gray-300",
-                  "focus:outline-none focus:ring-2 focus:ring-black/40"
+                  "focus:outline-none focus:ring-0 focus:ring-black/40"
                 ].join(" ")}
               >
                 <Image
