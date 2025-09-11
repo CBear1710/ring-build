@@ -1,5 +1,5 @@
 import { parseAsStringEnum } from "nuqs";
-import { parseAsNullableEnum } from "@/lib/parsers";
+import { parseAsNullableEnum, parseAsNumber} from "@/lib/parsers";
 
 
 export const styleParser = parseAsStringEnum([
@@ -19,3 +19,13 @@ export const purityParser = parseAsNullableEnum([
 export const tabParser = parseAsStringEnum([
   "setting", "stone", "shank",
 ]).withDefault("setting");
+
+
+
+
+export const shapeParser = parseAsStringEnum([
+  "round","princess","cushion","oval","radiant",
+  "pear","emerald","marquise","heart","asscher",
+]).withDefault("round");
+
+export const caratParser = parseAsNumber.withDefault(0.5);

@@ -1,38 +1,51 @@
 "use client";
-
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
-type Tab = "setting" | "stone" | "shank";
-type Style =
+export type Tab = "setting" | "stone" | "shank";
+export type Style =
   | "plain" | "cathedral" | "knife" | "split" | "twisted" | "wide_plain";
-type Metal = "white" | "yellow" | "rose" | "platinum";
-type Purity = "9k" | "14k" | "18k" | null;
+export type Metal = "white" | "yellow" | "rose" | "platinum";
+export type Purity = "9k" | "14k" | "18k" | null;
+
+
+export type Shape =
+  | "round" | "princess" | "cushion" | "oval" | "radiant"
+  | "pear" | "emerald" | "marquise" | "heart" | "asscher";
 
 export type ConfigState = {
-  
   tab: Tab;
 
-  
   style: Style;
   metal: Metal;
   purity: Purity;
 
+
+  shape: Shape;   
+  carat: number;  
 
   setTab: (t: Tab) => void;
   setStyle: (s: Style) => void;
   setMetal: (m: Metal) => void;
   setPurity: (p: Purity) => void;
 
+  
+  setShape: (s: Shape) => void;
+  setCarat: (c: number) => void;
+
   reset: () => void;
 };
 
-// defaults (first option = default)
-export const DEFAULTS = {
-  tab: "setting" as Tab,
-  style: "plain" as Style,
-  metal: "white" as Metal,
-  purity: "9k" as Purity,
+export const DEFAULTS: Pick<
+  ConfigState,
+  "tab" | "style" | "metal" | "purity" | "shape" | "carat"
+> = {
+  tab: "setting",
+  style: "plain",
+  metal: "white",
+  purity: "9k",
+  shape: "round",
+  carat: 0.5,
 };
 
 export const useConfigStore = create<ConfigState>()(
@@ -45,13 +58,16 @@ export const useConfigStore = create<ConfigState>()(
     setMetal: (metal) => {
       if (metal === "platinum") set({ metal, purity: null });
       else {
-        // if purity was null --> default
         const purity = get().purity ?? DEFAULTS.purity;
         set({ metal, purity });
       }
     },
 
     setPurity: (purity) => set({ purity }),
+
+    
+    setShape: (shape) => set({ shape }),
+    setCarat: (carat) => set({ carat }),
 
     reset: () => set({ ...DEFAULTS }),
   }))

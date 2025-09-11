@@ -6,9 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import StyleCard from "@/components/style-card"
 import MetalCard from "@/components/metal"
 import { Button } from "@/components/ui/button"
-import { Settings2, Gem, Circle, RotateCcw } from "lucide-react"
+import { Settings2, Gem, Circle, RotateCcw, ChevronRight } from "lucide-react"
 import { useConfigStore } from "@/store/configurator"  
-
+import StoneCard from "@/components/stone-card";
 
 
 export default function LeftPanel() {
@@ -79,15 +79,23 @@ export default function LeftPanel() {
         >
           <Gem className="h-4 w-4" />
           SELECT STONE
-          <span className="text-[13px] font-semibold tracking-wide">›</span>
+          <ChevronRight className="ml-auto h-5 w-5" />
         </Button>
       </TabsContent>
 
-      <TabsContent value="stone" className="mt-4">
-        <div className="bg-card border rounded-2xl shadow-sm p-6 text-sm text-muted-foreground">
-          Stone configurator coming soon.
-        </div>
+      <TabsContent value="stone" className="mt-4 space-y-4">
+        <StoneCard />
+        <Button
+          onClick={()=>setTab("shank")}
+          className=" w-1/2 h-11 rounded-full px-4 justify-start gap-2 bg-[#3A3A3C] text-white hover:bg-[#2F2F31] shadow-sm"
+           
+        >
+          <Circle className ="h-4 w-4" />
+          COMPLETE RING
+          <ChevronRight className="ml-auto h-5 w-5" />
+        </Button>
       </TabsContent>
+
 
       <TabsContent value="shank" className="mt-4">
         <div className="bg-card border rounded-2xl shadow-sm p-6 text-sm text-muted-foreground">

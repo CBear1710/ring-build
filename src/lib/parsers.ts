@@ -15,7 +15,7 @@ export function makeNullable<T>(parser: ParserBuilder<T>) {
   });
 }
 
-// Enum-specific nullable parser
+
 export function parseAsNullableEnum<T extends string>(values: readonly T[]) {
   return createParser<T | null>({
     parse(q) {
@@ -27,3 +27,14 @@ export function parseAsNullableEnum<T extends string>(values: readonly T[]) {
     },
   });
 }
+
+export const parseAsNumber = createParser<number>({
+  parse(query) {
+    if (query == null) return null;        
+    const n = Number(query);
+    return Number.isNaN(n) ? null : n;     
+  },
+  serialize(value) {
+    return value.toString();               
+  },
+});
