@@ -9,27 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Settings2, Gem, Circle, RotateCcw } from "lucide-react"
 import { useConfigStore } from "@/store/configurator"  
 
-const STYLE_OPTIONS = [
-  { key: "plain", label: "Plain" },
-  { key: "cathedral", label: "Cathedral" },
-  { key: "knife", label: "Knife Edge" },
-  { key: "split", label: "Split" },
-  { key: "twisted", label: "Twisted" },
-  { key: "wide_plain", label: "Wide Plain" },
-]
 
-const METAL_OPTIONS = [
-  { key: "white", label: "White Gold" },
-  { key: "yellow", label: "Yellow Gold" },
-  { key: "rose", label: "Rose Gold" },
-  { key: "platinum", label: "Platinum" },
-]
-
-const PURITY_OPTIONS = [
-  { key: "9k", label: "9K" },
-  { key: "14k", label: "14K" },
-  { key: "18k", label: "18K" },
-]
 
 export default function LeftPanel() {
   //  read/write from store 
