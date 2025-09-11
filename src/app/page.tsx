@@ -1,6 +1,7 @@
 import LeftPanel from "@/components/left-panel"
 import UrlSync from "@/components/url-sync";
 
+export const dynamic = "force-dynamic"
 export default function Page() {
   return (
     <main className="
@@ -12,7 +13,7 @@ export default function Page() {
       max-[767px]:grid-cols-1
     ">
       <UrlSync />
-      
+
       {/* LEFT */}
       <aside className="sticky top-6 self-start flex flex-col gap-4">
         <LeftPanel />
