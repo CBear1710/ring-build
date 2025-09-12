@@ -1,4 +1,4 @@
-import { parseAsStringEnum } from "nuqs";
+import { parseAsStringEnum, parseAsString } from "nuqs";
 import { parseAsNullableEnum, parseAsNumber} from "@/lib/parsers";
 
 
@@ -29,3 +29,10 @@ export const shapeParser = parseAsStringEnum([
 ]).withDefault("round");
 
 export const caratParser = parseAsNumber.withDefault(0.5);
+
+export const engravingTextParser = parseAsString.withDefault("");     
+export const engravingFontParser = parseAsStringEnum(
+  ["regular", "script", "italics", "roman"]
+).withDefault("regular");
+
+export const ringSizeParser = parseAsNumber.withDefault(2); 

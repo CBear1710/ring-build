@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Settings2, Gem, Circle, RotateCcw, ChevronRight } from "lucide-react"
 import { useConfigStore } from "@/store/configurator"  
 import StoneCard from "@/components/stone-card";
-
+import EngravingCard from "@/components/engraving-card";
+import RingSizeCard from "@/components/ring-size-card";
 
 export default function LeftPanel() {
   //  read/write from store 
@@ -98,9 +99,8 @@ export default function LeftPanel() {
 
 
       <TabsContent value="shank" className="mt-4">
-        <div className="bg-card border rounded-2xl shadow-sm p-6 text-sm text-muted-foreground">
-          Shank options will be added here.
-        </div>
+        <EngravingCard />
+        <RingSizeCard />
       </TabsContent>
     </Tabs>
   )

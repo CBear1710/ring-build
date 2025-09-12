@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { useConfigStore } from "@/store/configurator"
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useConfigStore } from "@/store/configurator";
 
 const STYLE_OPTIONS = [
   { key: "plain",      label: "Plain",      src: "/rings/plain.png" },
@@ -11,13 +12,27 @@ const STYLE_OPTIONS = [
   { key: "split",      label: "Split",      src: "/rings/split.png" },
   { key: "twisted",    label: "Twisted",    src: "/rings/twisted.png" },
   { key: "wide_plain", label: "Wide Plain", src: "/rings/wide-plain.png" },
-] as const
+] as const;
 
 export default function StyleCard() {
-  const style   = useConfigStore(s => s.style)
-  const setStyle = useConfigStore(s => s.setStyle)
+  const style = useConfigStore((s) => s.style);
+  const setStyle = useConfigStore((s) => s.setStyle);
 
-  const activeLabel = STYLE_OPTIONS.find(o => o.key === style)?.label ?? ""
+  const activeLabel = STYLE_OPTIONS.find((o) => o.key === style)?.label ?? "";
+
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const el = btnRefs.current[style];
+    if (el) {
+      el.scrollIntoView({
+        behavior: "instant", 
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [style]);
 
   return (
     <Card className="rounded-2xl shadow-sm">
@@ -27,23 +42,26 @@ export default function StyleCard() {
             <CardTitle className="text-[15px] tracking-wide">STYLE</CardTitle>
             <span className="text-sm text-muted-foreground">{activeLabel}</span>
           </div>
-          
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {STYLE_OPTIONS.map(opt => {
-            const selected = style === opt.key
+        <div ref={railRef} className="flex gap-3 overflow-x-auto pb-1">
+          {STYLE_OPTIONS.map((opt) => {
+            const selected = style === opt.key;
             return (
               <button
                 key={opt.key}
+                ref={(node) => {
+                  btnRefs.current[opt.key] = node;
+                }}
                 onClick={() => setStyle(opt.key as typeof style)}
                 title={opt.label}
+                onMouseDown={(e) => e.preventDefault()} 
                 className={[
-                  "relative flex-shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
+                  "relative shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
                   selected ? "border-black" : "border-gray-300",
-                  "focus:outline-none focus:ring-0 focus:ring-black/40"
+                  "focus:outline-none focus:ring-0",
                 ].join(" ")}
               >
                 <Image
@@ -52,13 +70,13 @@ export default function StyleCard() {
                   fill
                   sizes="56px"
                   className="object-cover object-center scale-110"
-                  priority
+                  priority={opt.key === "plain"}
                 />
               </button>
-            )
+            );
           })}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
