@@ -1,66 +1,82 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useConfigStore } from "@/store/configurator";
 
 const STYLE_OPTIONS = [
-  { key: "plain",      label: "Plain",       src: "/rings/plain.png" },
-  { key: "cathedral",  label: "Cathedral",   src: "/rings/cathedral.png" },
-  { key: "knife",      label: "Knife Edge",  src: "/rings/knife-edge.png" },
-  { key: "split",      label: "Split",       src: "/rings/split.png" },
-  { key: "twisted",    label: "Twisted",     src: "/rings/twisted.png" },
-  { key: "wide_plain", label: "Wide Plain",  src: "/rings/wide-plain.png" },
-]
+  { key: "plain",      label: "Plain",      src: "/rings/plain.png" },
+  { key: "cathedral",  label: "Cathedral",  src: "/rings/cathedral.png" },
+  { key: "knife",      label: "Knife Edge", src: "/rings/knife-edge.png" },
+  { key: "split",      label: "Split",      src: "/rings/split.png" },
+  { key: "twisted",    label: "Twisted",    src: "/rings/twisted.png" },
+  { key: "wide_plain", label: "Wide Plain", src: "/rings/wide-plain.png" },
+] as const;
 
-export default function StyleCard({ price = 1000 }: { price?: number }) {
-  const [active, setActive] = useState("plain")
+export default function StyleCard() {
+  const style = useConfigStore((s) => s.style);
+  const setStyle = useConfigStore((s) => s.setStyle);
+
+  const activeLabel = STYLE_OPTIONS.find((o) => o.key === style)?.label ?? "";
+
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const el = btnRefs.current[style];
+    if (el) {
+      el.scrollIntoView({
+        behavior: "instant", 
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [style]);
 
   return (
-    <Card className="rounded-xl shadow-sm">
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <CardTitle className="text-base tracking-wide">STYLE</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              {STYLE_OPTIONS.find(o => o.key === active)?.label}
-            </span>
+            <CardTitle className="text-[15px] tracking-wide">STYLE</CardTitle>
+            <span className="text-sm text-muted-foreground">{activeLabel}</span>
           </div>
-          <div className="text-sm font-semibold text-muted-foreground">${price}</div>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div ref={railRef} className="flex gap-3 overflow-x-auto pb-1">
           {STYLE_OPTIONS.map((opt) => {
-            const selected = active === opt.key
+            const selected = style === opt.key;
             return (
               <button
                 key={opt.key}
-                onClick={() => setActive(opt.key)}
+                ref={(node) => {
+                  btnRefs.current[opt.key] = node;
+                }}
+                onClick={() => setStyle(opt.key as typeof style)}
                 title={opt.label}
+                onMouseDown={(e) => e.preventDefault()} 
                 className={[
-                  "relative flex-shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
+                  "relative shrink-0 w-14 h-14 rounded-full border-2 overflow-hidden",
                   selected ? "border-black" : "border-gray-300",
-                  "focus:outline-none focus:ring-2 focus:ring-black/40"
+                  "focus:outline-none focus:ring-0",
                 ].join(" ")}
               >
-                {/* rings image */}
-                
-                  <Image
-                    src={opt.src}
-                    alt={opt.label}
-                    fill
-                    sizes="56px"
-                    className="object-cover object-center scale-90"
-                    priority
-                  />
-                
+                <Image
+                  src={opt.src}
+                  alt={opt.label}
+                  fill
+                  sizes="56px"
+                  className="object-cover object-center scale-110"
+                  priority={opt.key === "plain"}
+                />
               </button>
-            )
+            );
           })}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
