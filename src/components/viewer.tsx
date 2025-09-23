@@ -58,7 +58,7 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
 
 
 function useAutoFrame(
-  groupRef: React.RefObject<THREE.Group>,
+  groupRef: React.RefObject<THREE.Group | null>,
   controlsRef: React.RefObject<any>,
   deps: unknown[],
   padding = 1.2
@@ -200,7 +200,6 @@ function SceneContent() {
   );
 }
 
-/* ----------------------------- canvas wrapper --------------------------- */
 
 export default function ThreeViewer() {
   return (
