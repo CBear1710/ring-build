@@ -12,7 +12,6 @@ import HeadModel from "@/components/head-model";
 import StoneModel from "@/components/stone-model";
 import { useConfigStore } from "@/store/configurator";
 
-/* ----------------------------- helpers ---------------------------------- */
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
@@ -57,11 +56,7 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   stoneG.updateMatrixWorld(true);
 }
 
-/**
- * Auto-frame the camera to fully see groupRef contents.
- * Fits BOTH width & height using perspective math.
- * controlsRef ensures we run AFTER OrbitControls is mounted.
- */
+
 function useAutoFrame(
   groupRef: React.RefObject<THREE.Group>,
   controlsRef: React.RefObject<any>,
@@ -112,7 +107,6 @@ function useAutoFrame(
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
 }
 
-/* ----------------------------- scene ------------------------------------ */
 
 function SceneContent() {
   const style = useConfigStore((s) => s.style);
@@ -130,8 +124,7 @@ function SceneContent() {
   const headG = useRef<THREE.Group>(null!);
   const stoneG = useRef<THREE.Group>(null!);
 
-  // Parent group for auto-framing
-  const ringGroup = useRef<THREE.Group>(null);
+  const ringGroup = useRef<THREE.Group>(null!);
 
   // Auto-frame when style/shape change (and on mount). Include controlsRef.
   useAutoFrame(ringGroup, controlsRef, [style, shape, carat]);
@@ -199,7 +192,6 @@ function SceneContent() {
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        // loose caps; precise limits are set by auto-frame
         minDistance={0.4}
         maxDistance={6}
         zoomSpeed={0.9}
