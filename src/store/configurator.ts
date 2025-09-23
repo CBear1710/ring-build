@@ -1,4 +1,6 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
@@ -18,6 +20,7 @@ export type EngravingFont = "regular" | "script" | "italics" | "roman";
 
 
 export type ConfigState = {
+  resetKeepTab: any;
   tab: Tab;
 
   style: Style;
@@ -97,5 +100,11 @@ export const useConfigStore = create<ConfigState>()(
     setRingSize: (ringSize) => set({ ringSize }),
 
     reset: () => set({ ...DEFAULTS }),
+
+    resetKeepTab: () =>
+      set((state)=>({
+        ...DEFAULTS,
+        tab: state.tab,
+      })),
   }))
 );

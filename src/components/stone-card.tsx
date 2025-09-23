@@ -89,6 +89,7 @@ export default function StoneCard() {
           />
         </div>
       </CardContent>
+      
     </Card>
   );
 }

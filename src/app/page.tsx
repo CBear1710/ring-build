@@ -1,17 +1,22 @@
-import LeftPanel from "@/components/left-panel"
+import LeftPanel from "@/components/left-panel";
 import UrlSync from "@/components/url-sync";
+import Viewer from "@/components/viewer";
+import RightPanel from "@/components/right-panel";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+
 export default function Page() {
   return (
-    <main className="
-      min-h-screen bg-background
-      px-6 py-6
-      grid gap-7
-      grid-cols-[360px_1fr_360px]
-      max-[1199px]:grid-cols-[340px_1fr]
-      max-[767px]:grid-cols-1
-    ">
+    <main
+      className="
+        min-h-screen bg-background
+        px-6 py-6
+        grid gap-7
+        grid-cols-[360px_1fr_360px]
+        max-[1199px]:grid-cols-[340px_1fr]
+        max-[767px]:grid-cols-1
+      "
+    >
       <UrlSync />
 
       {/* LEFT */}
@@ -19,13 +24,15 @@ export default function Page() {
         <LeftPanel />
       </aside>
 
-      {/* CENTER viewer placeholder */}
-      <section className="bg-card border rounded-2xl min-h-[78vh] flex items-center justify-center">
-        <div className="text-muted-foreground">Viewer area</div>
+      {/* CENTER */}
+      <section>
+        <div className="h-[72vh]">
+          <Viewer />
+        </div>
       </section>
 
-      {/* RIGHT reserved */}
-      <aside className="rounded-2xl" />
+      {/* RIGHT: toggle + summary (client component) */}
+      <RightPanel />
     </main>
-  )
+  );
 }

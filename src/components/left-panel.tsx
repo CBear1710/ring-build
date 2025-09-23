@@ -17,6 +17,7 @@ export default function LeftPanel() {
   const tab    = useConfigStore((s) => s.tab)
   const setTab = useConfigStore((s) => s.setTab)
   const reset  = useConfigStore((s) => s.reset)
+  const resetKeepTab = useConfigStore((s) => s.resetKeepTab);  
 
   // composite string to change keys (remount) on reset
   const selectionKey = useConfigStore(
@@ -59,7 +60,7 @@ export default function LeftPanel() {
         
         <Button
           type="button"
-          onClick={onReset}
+          onClick={resetKeepTab}
           variant="outline"
           size="icon"
           className="rounded-full h-10 w-10 shrink-0 bg-white shadow-sm"

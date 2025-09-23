@@ -5,9 +5,7 @@ import { useQueryStates } from "nuqs";
 import { useConfigStore } from "@/store/configurator";
 import { styleParser, metalParser, purityParser, tabParser, shapeParser, caratParser, engravingTextParser, engravingFontParser, ringSizeParser, } from "@/lib/query-parsers";
 
-/**
- * Mount this once on pages that need deep-linking.
- */
+
 export default function UrlSync() {
   // nuqs gives current query values and  setter for multiple keys
   const [qs, setQs] = useQueryStates({
