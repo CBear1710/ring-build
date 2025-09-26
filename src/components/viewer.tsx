@@ -12,50 +12,36 @@ import HeadModel from "@/components/head-model";
 import StoneModel from "@/components/stone-model";
 import { useConfigStore } from "@/store/configurator";
 
-
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
-  root.traverse((o) => {
-    if (o.name === name) hit = o;
-  });
+  root.traverse((o) => { if (o.name === name) hit = o; });
   return hit;
 }
 
-/** Copy world position/rotation/scale from src -> dst (dst is a Group). */
-function copyWorldTransform(src: THREE.Object3D, dst: THREE.Object3D) {
+/** Copy world Position + Rotation (ignore Scale) */
+function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
   const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  src.matrixWorld.decompose(p, q, s);
+  src.matrixWorld.decompose(p, q, new THREE.Vector3());
   dst.position.copy(p);
   dst.quaternion.copy(q);
-  dst.scale.copy(s);
+  dst.scale.set(1, 1, 1);
   dst.updateMatrixWorld(true);
 }
 
-/** Place stone at the head’s world bounding-box center, matching head rotation/scale. */
+/** Snap stone to head bbox center; keep group scale at 1 */
 function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
-
-  // 1) Get the head group's world-space bounding box center
   const box = new THREE.Box3().setFromObject(headG);
-  const centerWorld = new THREE.Vector3();
-  box.getCenter(centerWorld);
-
-  // 2) Get head world rotation & scale
-  const q = new THREE.Quaternion();
-  const s = new THREE.Vector3();
-  headG.getWorldQuaternion(q);
-  headG.getWorldScale(s);
-
-  // 3) Apply to stone group
+  if (!isFinite(box.min.x) || box.isEmpty()) return;
+  const centerWorld = new THREE.Vector3(); box.getCenter(centerWorld);
+  const q = new THREE.Quaternion(); headG.getWorldQuaternion(q);
   stoneG.position.copy(centerWorld);
   stoneG.quaternion.copy(q);
-  stoneG.scale.copy(s);
+  stoneG.scale.set(1, 1, 1);
   stoneG.updateMatrixWorld(true);
 }
-
 
 function useAutoFrame(
   groupRef: React.RefObject<THREE.Group | null>,
@@ -63,19 +49,15 @@ function useAutoFrame(
   deps: unknown[],
   padding = 1.2
 ) {
-  const { camera, size } = useThree();
-
+  const { camera, size, invalidate } = useThree();
   useLayoutEffect(() => {
-    const root = groupRef.current;
-    const controls = controlsRef.current;
+    const root = groupRef.current; const controls = controlsRef.current;
     if (!root || !camera || !controls) return;
 
     const box = new THREE.Box3().setFromObject(root);
     if (!isFinite(box.min.x) || box.isEmpty()) return;
 
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-
+    const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
     const persp = camera as THREE.PerspectiveCamera;
     const vFov = persp.fov * (Math.PI / 180);
     const aspect = (size.width || 1) / (size.height || 1);
@@ -87,11 +69,7 @@ function useAutoFrame(
     const dist = Math.max(distV, distH);
 
     const target = sphere.center.clone();
-
-    const dir = camera.position
-      .clone()
-      .sub(controls.target || new THREE.Vector3())
-      .normalize();
+    const dir = camera.position.clone().sub(controls.target || new THREE.Vector3()).normalize();
     const newPos = target.clone().add(dir.multiplyScalar(dist));
 
     persp.near = Math.max(0.01, dist / 100);
@@ -103,10 +81,31 @@ function useAutoFrame(
     controls.minDistance = dist * 1.0;
     controls.maxDistance = dist * 2.0;
     controls.update?.();
+
+    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
 }
 
+/** Colored lights that illuminate only objects on layer 1 (the stone). */
+function StoneOnlyLights() {
+  // Surround the stone with saturated colors; lights are forced to layer 1.
+  const L = 5.5; // radius
+  const Y = 6.0; // height
+  const INT = 3.0;
+  const common = { distance: 20, decay: 2 } as const;
+
+  return (
+    <>
+      <pointLight position={[ L,  Y,  0 ]} intensity={INT}   color="#ffc88a" {...common} onUpdate={(o)=>o.layers.set(1)} />
+      <pointLight position={[ 0,  Y,  L ]} intensity={INT}   color="#9bc8ff" {...common} onUpdate={(o)=>o.layers.set(1)} />
+      <pointLight position={[-L,  Y,  0 ]} intensity={INT}   color="#9fffe7" {...common} onUpdate={(o)=>o.layers.set(1)} />
+      <pointLight position={[ 0,  Y, -L ]} intensity={INT}   color="#ff9ad7" {...common} onUpdate={(o)=>o.layers.set(1)} />
+      <spotLight  position={[  6,  9,  4 ]} intensity={3.4}  color="#ffd7a1" angle={0.7} penumbra={0.6} onUpdate={(o)=>o.layers.set(1)} />
+      <pointLight position={[ 0, 10,  0 ]} intensity={1.2}  color="#ffffff" {...common} onUpdate={(o)=>o.layers.set(1)} />
+    </>
+  );
+}
 
 function SceneContent() {
   const style = useConfigStore((s) => s.style);
@@ -116,76 +115,67 @@ function SceneContent() {
 
   const controlsRef = useRef<any>(null);
 
-  // 1) Load reference layout (anchors) from ring_4.obj
+  // Reference anchors
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
 
-  // 2) Groups for real parts
-  const shankG = useRef<THREE.Group>(null!);
-  const headG = useRef<THREE.Group>(null!);
-  const stoneG = useRef<THREE.Group>(null!);
+  // Groups
+  const shankG = useRef<THREE.Group | null>(null);
+  const headG  = useRef<THREE.Group | null>(null);
+  const stoneG = useRef<THREE.Group | null>(null);
+  const ringGroup = useRef<THREE.Group | null>(null);
 
-  const ringGroup = useRef<THREE.Group>(null!);
-
-  // Auto-frame when style/shape change (and on mount). Include controlsRef.
   useAutoFrame(ringGroup, controlsRef, [style, shape, carat]);
 
-  // 3) Find anchors once
-  const anchors = useMemo(() => {
-    return {
-      shankA: findByName(refRoot, "ANCHOR_SHANK"),
-      headA: findByName(refRoot, "ANCHOR_HEAD"),
-      stoneA: findByName(refRoot, "ANCHOR_STONE"),
-    };
-  }, [refRoot]);
+  const anchors = useMemo(() => ({
+    shankA: findByName(refRoot, "ANCHOR_SHANK"),
+    headA:  findByName(refRoot, "ANCHOR_HEAD"),
+    stoneA: findByName(refRoot, "ANCHOR_STONE"),
+  }), [refRoot]);
 
-  // 4) Place shank/head/stone whenever anchors or selected options change
+  const { invalidate, camera } = useThree();
+
+  // Camera must see layer 1 so stone-only lights are visible
   useEffect(() => {
-    // Shank
-    if (anchors.shankA && shankG.current) {
-      copyWorldTransform(anchors.shankA, shankG.current);
-    }
+    camera.layers.enable(1);
+  }, [camera]);
 
-    // Head
-    if (anchors.headA && headG.current) {
-      copyWorldTransform(anchors.headA, headG.current);
-    }
+  useEffect(() => {
+    if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
+    if (anchors.headA  && headG.current)  copyWorldPR(anchors.headA,  headG.current);
 
-    // Stone: prefer dedicated stone anchor; else snap to the head’s world bbox center
     if (stoneG.current) {
       if (anchors.stoneA) {
-        copyWorldTransform(anchors.stoneA, stoneG.current);
+        copyWorldPR(anchors.stoneA, stoneG.current);
       } else if (headG.current) {
-        copyWorldTransform(headG.current, stoneG.current);
+        copyWorldPR(headG.current, stoneG.current);
         requestAnimationFrame(() => {
-          if (headG.current && stoneG.current) {
-            snapStoneToHead(headG.current, stoneG.current);
-          }
+          if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
+          requestAnimationFrame(() => {
+            if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
+            invalidate();
+          });
         });
       }
     }
-  }, [anchors, style, shape, carat]); // include carat so stone tracks head growth
+    invalidate();
+  }, [anchors, style, shape, invalidate]); // no carat here
 
   return (
     <>
-      {/* Keep the template hidden; it only supplies the anchors */}
       <primitive object={refRoot} visible={false} />
 
-      {/* Everything inside ringGroup gets framed by the camera */}
       <group ref={ringGroup}>
-        <group ref={shankG}>
-          <ShankModel style={style as any} metal={metal as any} />
-        </group>
-
-        <group ref={headG}>
-          <HeadModel shape={shape as any} carat={carat} metal={metal as any} />
-        </group>
-
-        <group ref={stoneG}>
-          <StoneModel shape={shape as any} carat={carat} />
-        </group>
+        <group ref={shankG}><ShankModel style={style as any} metal={metal as any} /></group>
+        <group ref={headG}><HeadModel shape={shape as any} carat={carat} metal={metal as any} /></group>
+        <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
       </group>
 
+      {/* Neutral environment (retains shank/head metal look) */}
       <Environment files="/hdrs/metal3.hdr" background={false} />
+
+      {/* Colored lights that affect ONLY the stone */}
+      <StoneOnlyLights />
+
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -200,7 +190,6 @@ function SceneContent() {
   );
 }
 
-
 export default function ThreeViewer() {
   return (
     <div className="relative w-full h-[80vh]">
@@ -209,7 +198,12 @@ export default function ThreeViewer() {
         frameloop="demand"
         dpr={[1, 2]}
         camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.01, far: 50 }}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        gl={{
+          antialias: true,
+          powerPreference: "high-performance",
+          toneMapping: THREE.ACESFilmicToneMapping,
+          outputColorSpace: THREE.SRGBColorSpace,
+        }}
       >
         <Suspense fallback={null}>
           <SceneContent />

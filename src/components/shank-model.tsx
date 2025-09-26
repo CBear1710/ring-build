@@ -1,7 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
+import {
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  MeshPhysicalMaterial,
+  Object3D,
+} from "three";
 import { useGLTF } from "@react-three/drei";
 
 const STYLE_TO_SRC = {
@@ -16,32 +23,52 @@ const STYLE_TO_SRC = {
 type StyleKey = keyof typeof STYLE_TO_SRC;
 type Metal = "white" | "yellow" | "rose" | "platinum";
 
+/** Higher-saturation tints + polished roughness + stronger reflections */
 const METAL_TINT: Record<
   Metal,
-  { color: [number, number, number]; metalness: number; roughness: number }
+  {
+    color: [number, number, number];
+    metalness: number;
+    roughness: number;
+    envMapIntensity: number;
+    clearcoat?: number;
+    clearcoatRoughness?: number;
+  }
 > = {
-  white: { color: [0.96, 0.96, 1.0], metalness: 1.0, roughness: 0.25 },
-  yellow: { color: [0.98, 0.82, 0.3], metalness: 1.0, roughness: 0.2 },
-  rose: { color: [0.95, 0.7, 0.6], metalness: 1.0, roughness: 0.22 },
-  platinum: { color: [0.9, 0.92, 0.95], metalness: 1.0, roughness: 0.18 },
+  // Cool, bright white-metal look
+  white:    { color: [0.93, 0.95, 1.00], metalness: 1.0, roughness: 0.06, envMapIntensity: 1.35, clearcoat: 0.2, clearcoatRoughness: 0.02 },
+  // Rich yellow gold
+  yellow:   { color: [0.83, 0.66, 0.22], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.50, clearcoat: 0.15, clearcoatRoughness: 0.03 },
+  // Warmer rose gold
+  rose:     { color: [0.82, 0.54, 0.50], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.45, clearcoat: 0.15, clearcoatRoughness: 0.03 },
+  // Slightly darker than “white”
+  platinum: { color: [0.90, 0.92, 0.95], metalness: 1.0, roughness: 0.05, envMapIntensity: 1.40, clearcoat: 0.25, clearcoatRoughness: 0.02 },
 };
 
+type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
+
 function tintMetal(root: Object3D, metal: Metal) {
-  const { color, roughness, metalness } = METAL_TINT[metal];
+  const { color, roughness, metalness, envMapIntensity, clearcoat, clearcoatRoughness } =
+    METAL_TINT[metal];
+
   root.traverse((o) => {
-    const m = (o as Mesh).material as
-      | MeshStandardMaterial
-      | MeshStandardMaterial[]
-      | undefined;
+    const m = (o as Mesh).material as AnyMetalMat | AnyMetalMat[] | undefined;
     if (!m) return;
-    const apply = (mat: MeshStandardMaterial) => {
+
+    const apply = (mat: AnyMetalMat) => {
       if (!("color" in mat)) return;
       mat.color.setRGB(color[0], color[1], color[2]);
-      mat.metalness = metalness;
-      mat.roughness = roughness;
+      (mat as any).metalness = metalness;
+      (mat as any).roughness = roughness;
+      (mat as any).envMapIntensity = envMapIntensity;
+      if ("clearcoat" in mat && clearcoat !== undefined) {
+        (mat as any).clearcoat = clearcoat;
+        (mat as any).clearcoatRoughness = clearcoatRoughness ?? 0.02;
+      }
       mat.needsUpdate = true;
     };
-    Array.isArray(m) ? m.forEach(apply) : apply(m);
+
+    Array.isArray(m) ? m.forEach(apply) : apply(m as AnyMetalMat);
   });
 }
 
@@ -55,10 +82,9 @@ export default function ShankModel({
   const url = useMemo(() => STYLE_TO_SRC[style], [style]);
   const { scene } = useGLTF(url);
 
-  const wrapper = useRef<Group>(null);
+  const wrapper = useRef<Group | null>(null);
   const childRef = useRef<Object3D | null>(null);
 
-  // build/replace on style change
   useEffect(() => {
     if (!wrapper.current) return;
 
@@ -71,7 +97,6 @@ export default function ShankModel({
     wrapper.current.add(child);
     childRef.current = child;
 
-    // don’t move/scale here — viewer applies transform from reference model
     child.traverse((o) => {
       const mesh = o as Mesh;
       if (mesh.isMesh) {
@@ -83,7 +108,6 @@ export default function ShankModel({
     tintMetal(child, metal);
   }, [scene, url, style]);
 
-  // re-tint when metal changes
   useEffect(() => {
     if (!childRef.current) return;
     tintMetal(childRef.current, metal);
