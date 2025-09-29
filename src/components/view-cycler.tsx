@@ -2,41 +2,37 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useView } from "@/components/view-context";
-import { RotateCw } from "lucide-react"; // or any icon
+import { RotateCw } from "lucide-react";
 
-const Kt = ["Top", "Side", "Front", "360"] as const;
-type Label = typeof Kt[number];
+const ORDER = ["Front", "Top", "Side", "360"] as const;
+type Label = typeof ORDER[number];
 
 export default function ViewCyclerButton() {
   const { setView, setView360 } = useView();
+
   const [idx, setIdx] = useState(0);
+  const current = useMemo<Label>(() => ORDER[idx], [idx]);
+  const next = useMemo<Label>(() => ORDER[(idx + 1) % ORDER.length], [idx]);
 
-  const label = useMemo<Label>(() => Kt[idx], [idx]);
-
-  // Ke: click handler (matches the doc's logic)
-  const Ke = () => {
-    const l = Kt[idx];
-    if (l === "360") {
-      setView360(true);
+  const onClick = () => {
+    if (next === "360") {
+      setView360(true);           
     } else {
       setView360(false);
-      // be(): "go to view" == set the named view; animator will do the rest
-      setView(l.toLowerCase() as any); // "top" | "side" | "front"
+      setView(next.toLowerCase() as "front" | "top" | "side");
     }
-    setIdx((i) => (i + 1) % Kt.length);
+    setIdx((i) => (i + 1) % ORDER.length);
   };
-
-  const title = `View: ${label}`;
 
   return (
     <button
-      onClick={Ke}
-      aria-label={title}
-      title={title}
+      onClick={onClick}
+      aria-label={`View: ${current} (next: ${next})`}
+      title={`View: ${current} (next: ${next})`}
       className="inline-flex items-center gap-2 rounded-xl bg-white/80 hover:bg-white shadow px-3 py-2 text-sm"
     >
       <RotateCw className="h-4 w-4" />
-      <span>{label}</span>
+      <span>{current}</span>
     </button>
   );
 }

@@ -16,7 +16,8 @@ type ViewState = {
 const Ctx = createContext<ViewState | null>(null);
 
 export function ViewProvider({ children }: { children: React.ReactNode }) {
-  const [view, setView] = useState<View>("perspective");
+  // Start on FRONT as requested
+  const [view, setView] = useState<View>("front");
   const [view360, setView360] = useState(false);
   const [controls, setControls] = useState<any | null>(null);
 

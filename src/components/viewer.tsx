@@ -11,6 +11,7 @@ import ShankModel from "@/components/shank-model";
 import HeadModel from "@/components/head-model";
 import StoneModel from "@/components/stone-model";
 import { useConfigStore } from "@/store/configurator";
+import { useView } from "@/components/view-context";
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
@@ -18,7 +19,6 @@ function findByName(root: THREE.Object3D, name: string) {
   return hit;
 }
 
-/** copy only world position+rotation (ignore scale) */
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -84,9 +84,82 @@ function useAutoFrame(
     controls.maxDistance = dist * 2.0;
     controls.update?.();
 
-    invalidate(); 
+    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
+}
+
+/** Eased camera fly-to */
+function animateCamera(
+  camera: THREE.PerspectiveCamera,
+  controls: any,
+  toPos: THREE.Vector3,
+  toTarget: THREE.Vector3,
+  duration = 650,
+  invalidate?: () => void
+) {
+  const fromPos = camera.position.clone();
+  const fromTgt = controls.target.clone();
+  const start = performance.now();
+  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+
+  function tick(now: number) {
+    const k = Math.min(1, (now - start) / duration);
+    const e = ease(k);
+
+    camera.position.set(
+      THREE.MathUtils.lerp(fromPos.x, toPos.x, e),
+      THREE.MathUtils.lerp(fromPos.y, toPos.y, e),
+      THREE.MathUtils.lerp(fromPos.z, toPos.z, e)
+    );
+    controls.target.set(
+      THREE.MathUtils.lerp(fromTgt.x, toTarget.x, e),
+      THREE.MathUtils.lerp(fromTgt.y, toTarget.y, e),
+      THREE.MathUtils.lerp(fromTgt.z, toTarget.z, e)
+    );
+
+    camera.updateProjectionMatrix();
+    controls.update?.();
+    invalidate?.();
+
+    if (k < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/** Correct mapping for a typical three.js scene (Y up, camera starts at +Z) */
+const VIEW_DIRS: Record<"top"|"side"|"front", THREE.Vector3> = {
+  front: new THREE.Vector3(0, 0, 1), // look from +Z
+  top:   new THREE.Vector3(0, 1, 0), // look from +Y
+  side:  new THREE.Vector3(1, 0, 0), // look from +X (right side)
+};
+
+function goToNamedView(
+  mode: "top" | "side" | "front",
+  camera: THREE.PerspectiveCamera,
+  controls: any,
+  root: THREE.Object3D,
+  invalidate?: () => void
+) {
+  const box = new THREE.Box3().setFromObject(root);
+  if (!isFinite(box.min.x) || box.isEmpty()) return;
+
+  const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
+
+  const vFov = camera.fov * (Math.PI / 180);
+  const aspect = (camera as any).aspect || 1;
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+
+  const radius = sphere.radius * 1.2;
+  const distV = radius / Math.tan(vFov / 2);
+  const distH = radius / Math.tan(hFov / 2);
+  const dist = Math.max(distV, distH);
+
+  const tgt = sphere.center.clone();
+  const dir = VIEW_DIRS[mode].clone().normalize();
+  const pos = tgt.clone().add(dir.multiplyScalar(dist));
+
+  animateCamera(camera, controls, pos, tgt, 650, invalidate);
 }
 
 function SceneContent() {
@@ -94,6 +167,8 @@ function SceneContent() {
   const metal = useConfigStore((s) => s.metal);
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
+
+  const { view, view360, setControls } = useView();
 
   const controlsRef = useRef<any>(null);
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
@@ -110,13 +185,18 @@ function SceneContent() {
     camera.layers.enable(1);
   }, [camera]);
 
+  useEffect(() => {
+    setControls(controlsRef.current);
+    return () => setControls(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const anchors = useMemo(() => ({
     shankA: findByName(refRoot, "ANCHOR_SHANK"),
     headA:  findByName(refRoot, "ANCHOR_HEAD"),
     stoneA: findByName(refRoot, "ANCHOR_STONE"),
   }), [refRoot]);
 
-  // ✅ place parts in a LAYOUT effect, then tick layout version
   const [layoutTick, setLayoutTick] = useState(0);
   useLayoutEffect(() => {
     if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
@@ -127,7 +207,6 @@ function SceneContent() {
         copyWorldPR(anchors.stoneA, stoneG.current);
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
-        // make sure bbox exists
         requestAnimationFrame(() => {
           if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
           requestAnimationFrame(() => {
@@ -137,11 +216,47 @@ function SceneContent() {
         });
       }
     }
-    setLayoutTick((t) => t + 1); 
+    setLayoutTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
 
   useAutoFrame(ringGroup, controlsRef, [style, shape, carat, layoutTick]);
+
+  // Spin loop to work with frameloop="demand"
+  useEffect(() => {
+    const controls = controlsRef.current;
+    let raf = 0;
+    function loop() {
+      if (!controls || !controls.autoRotate) return;
+      controls.update?.();
+      invalidate();
+      raf = requestAnimationFrame(loop);
+    }
+    if (controls && view360) {
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.6;
+      raf = requestAnimationFrame(loop);
+    } else if (controls) {
+      controls.autoRotate = false;
+    }
+    return () => {
+      if (raf)  cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view360]);
+
+  // React to named view changes
+  useEffect(() => {
+    const controls = controlsRef.current;
+    const root = ringGroup.current;
+    if (!controls || !root) return;
+
+    if (view === "top" || view === "side" || view === "front") {
+      controls.autoRotate = false;
+      goToNamedView(view, camera as THREE.PerspectiveCamera, controls, root, invalidate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, layoutTick]);
 
   return (
     <>

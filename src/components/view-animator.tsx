@@ -38,7 +38,7 @@ export default function ViewAnimator() {
     const c = controls as any;
     if (c) {
       c.autoRotate = !!view360;
-      c.autoRotateSpeed = 0.6;
+      c.autoRotateSpeed = 0.1;
       c.update?.();
       invalidate();
     }

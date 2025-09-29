@@ -34,40 +34,43 @@ export default function LeftPanel() {
   return (
     <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="w-full">
       <div className="flex items-center gap-2">
-        <TabsList className="grid grid-cols-3 rounded-full bg-secondary p-1 h-10">
-          <TabsTrigger
-            value="setting"
-            className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"
-          >
-            <Settings2 className="h-4 w-4" /> SETTING
-          </TabsTrigger>
-          <TabsTrigger
-            value="stone"
-            className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"
-          >
-            <Gem className="h-4 w-4" /> STONE
-          </TabsTrigger>
-          <TabsTrigger
-            value="shank"
-            className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"
-          >
-            <Circle className="h-4 w-4" /> SHANK
-          </TabsTrigger>
-        </TabsList>
+  <TabsList className="flex w-full h-10 rounded-full bg-secondary p-1 gap-1">
+    <TabsTrigger
+      value="setting"
+      className="flex-1 inline-flex items-center justify-center gap-2 px-3 rounded-full text-xs sm:text-sm whitespace-nowrap
+                 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
+    >
+      <Settings2 className="h-4 w-4" /> SETTING
+    </TabsTrigger>
 
-        
-        <Button
-          type="button"
-          onClick={resetKeepTab}
-          variant="outline"
-          size="icon"
-          className="rounded-full h-10 w-10 shrink-0 bg-white shadow-sm"
-          title="Reset to defaults"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </Button>
-      </div>
+    <TabsTrigger
+      value="stone"
+      className="flex-1 inline-flex items-center justify-center gap-2 px-3 rounded-full text-xs sm:text-sm whitespace-nowrap
+                 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
+    >
+      <Gem className="h-4 w-4" /> STONE
+    </TabsTrigger>
 
+    <TabsTrigger
+      value="shank"
+      className="flex-1 inline-flex items-center justify-center gap-2 px-3 rounded-full text-xs sm:text-sm whitespace-nowrap
+                 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow"
+    >
+      <Circle className="h-4 w-4" /> PERSONALIZE
+    </TabsTrigger>
+  </TabsList>
+
+  <Button
+    type="button"
+    onClick={resetKeepTab}
+    variant="outline"
+    size="icon"
+    className="rounded-full h-10 w-10 shrink-0 bg-white shadow-sm"
+    title="Reset to defaults"
+  >
+    <RotateCcw className="h-5 w-5" />
+  </Button>
+    </div>
       <TabsContent value="setting" className="mt-4 space-y-4">
         
         <StyleCard key={`style-${selectionKey}-${resetCount}`} />
