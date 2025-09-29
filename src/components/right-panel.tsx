@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SummaryPanel from "@/components/summary-panel";
 import SummaryToggle from "@/components/summary-toggle";
+import ViewCyclerButton from "@/components/view-cycler";
 
 function useMedia(query: string) {
   const [match, setMatch] = useState(false);
@@ -30,7 +31,9 @@ export default function SummaryRight() {
   if (!isLg) {
     return (
       <>
-        <div className="fixed right-3 top-3 z-50">
+        {/* Floating controls on mobile: view cycler + summary toggle */}
+        <div className="fixed right-3 top-3 z-50 flex items-center gap-2">
+          <ViewCyclerButton />
           <SummaryToggle onClick={() => setOpen((v) => !v)} />
         </div>
 
@@ -54,7 +57,11 @@ export default function SummaryRight() {
   return (
     <aside className="lg:sticky lg:top-6 lg:self-start">
       <div className="flex flex-col items-end gap-3">
-        <SummaryToggle onClick={() => setOpen((v) => !v)} />
+        {/* Desktop header row: view cycler + toggle */}
+        <div className="flex items-center gap-2">
+          <ViewCyclerButton />
+          <SummaryToggle onClick={() => setOpen((v) => !v)} />
+        </div>
 
         <div
           className={[

@@ -13,13 +13,11 @@ import EngravingCard from "@/components/engraving-card";
 import RingSizeCard from "@/components/ring-size-card";
 
 export default function LeftPanel() {
-  //  read/write from store 
   const tab    = useConfigStore((s) => s.tab)
   const setTab = useConfigStore((s) => s.setTab)
   const reset  = useConfigStore((s) => s.reset)
   const resetKeepTab = useConfigStore((s) => s.resetKeepTab);  
 
-  // composite string to change keys (remount) on reset
   const selectionKey = useConfigStore(
     (s) => `${s.style}|${s.metal}|${s.purity ?? "null"}`
   )

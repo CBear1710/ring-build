@@ -28,7 +28,6 @@ type ShapeKey =
 
 type Metal = "white" | "yellow" | "rose" | "platinum";
 
-/** HEAD GLBs matching shapes */
 const HEAD_TO_SRC: Record<ShapeKey, string> = {
   round: "/models/ROUNDh.glb",
   princess: "/models/PRINCESS.glb",
@@ -76,34 +75,26 @@ function tintMetal(root: Object3D, metal: Metal) {
   });
 }
 
-/* ------------------ CARAT QUANTIZATION (no cap, gentle growth) ------------------ */
 
-/** Slider step size (matches UI). */
 const CARAT_STEP_SIZE = 0.25;
-/** Minimum value you support. */
 const CARAT_MIN = 0.25;
-/** Per-step additive X/Z gain (smaller = less aggressive). */
-const STEP_GAIN = 0.03; // try 0.02–0.05
+const STEP_GAIN = 0.03; 
 
-/** Snap incoming carat to nearest step. */
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
   return Math.max(CARAT_MIN, Number(q.toFixed(2)));
 }
 
-/** Additive X/Z gain vs 1.00 ct, in steps * STEP_GAIN. */
 function gainFromCaratDiscrete(carat: number) {
   const q = quantizeCarat(carat);
   const stepsFrom1 = Math.round((q - 1.0) / CARAT_STEP_SIZE);
   return stepsFrom1 * STEP_GAIN;
 }
 
-/* ------------------------------------------------------------------------------ */
 
-// seating controls
-const SEAT_ALPHA = -1.3;        // seat Y fraction (can be negative)
-const HEAD_BASE_SCALE_XZ = 1.1; // baseline width/depth (XZ)
-const HEAD_BASE_SCALE_Y  = 1.0; // baseline height (Y stays constant)
+const SEAT_ALPHA = -1.3;        
+const HEAD_BASE_SCALE_XZ = 1.1; 
+const HEAD_BASE_SCALE_Y  = 1.0; 
 
 const SEAT_BAND_FRAC = 0.2;
 
@@ -204,10 +195,8 @@ export default function HeadModel({
   const wrapper = useRef<Group | null>(null);
   const childRef = useRef<Object3D | null>(null);
 
-  // Keep original Y scale so carat never changes height
   const baseYScaleRef = useRef<number>(1);
 
-  // Rebuild on shape change
   useEffect(() => {
     if (!wrapper.current) return;
 
@@ -229,20 +218,16 @@ export default function HeadModel({
       }
     });
 
-    // Centering: slice for heart/pear; bbox for others
     if (shape === "heart" || shape === "pear") {
       normalizeHeadToSeat_slice(child);
     } else {
       normalizeHeadToSeat_bbox(child);
     }
 
-    // Record base Y (kept constant across carat)
     baseYScaleRef.current = child.scale.y || 1;
 
-    // Tint
     tintMetal(child, metal);
 
-    // Initial sizing: X/Z use discrete gentle gain; Y fixed
     const r = gainFromCaratDiscrete(carat);
     const xz = HEAD_BASE_SCALE_XZ + r;
     const y  = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
@@ -250,13 +235,11 @@ export default function HeadModel({
     child.updateMatrixWorld(true);
   }, [scene, url, shape]);
 
-  // Re-tint on metal change
   useEffect(() => {
     if (!childRef.current) return;
     tintMetal(childRef.current, metal);
   }, [metal]);
 
-  // Carat changes → X/Z only; Y fixed
   useEffect(() => {
     const child = childRef.current;
     if (!child) return;

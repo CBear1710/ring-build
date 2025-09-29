@@ -2,6 +2,7 @@ import LeftPanel from "@/components/left-panel";
 import UrlSync from "@/components/url-sync";
 import Viewer from "@/components/viewer";
 import RightPanel from "@/components/right-panel";
+import { ViewProvider } from "@/components/view-context";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,9 @@ export default function Page() {
 
           {/* RIGHT */}
           <aside className="order-3">
+          <ViewProvider>
             <RightPanel />
+          </ViewProvider>
           </aside>
         </div>
       </div>

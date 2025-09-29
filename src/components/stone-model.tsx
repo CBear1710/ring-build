@@ -16,11 +16,11 @@ const SHAPE_TO_SRC = {
   cushion: "/models/cushion.obj",
   oval: "/models/oval.obj",
   radiant: "/models/radiant.obj",
-  pear: "/models/PEAR.obj",
-  emerald: "/models/EMERALD.obj",
-  marquise: "/models/MARQUISE.obj",
-  heart: "/models/HEART.obj",
-  asscher: "/models/ASSCHER.obj",
+  pear: "/models/pear.obj",
+  emerald: "/models/emerald.obj",
+  marquise: "/models/marquise.obj",
+  heart: "/models/heart.obj",
+  asscher: "/models/asscher.obj",
 } as const;
 type ShapeKey = keyof typeof SHAPE_TO_SRC;
 

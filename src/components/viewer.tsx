@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Suspense, useEffect, useMemo, useRef, useLayoutEffect } from "react";
+import { Suspense, useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
@@ -18,6 +18,7 @@ function findByName(root: THREE.Object3D, name: string) {
   return hit;
 }
 
+/** copy only world position+rotation (ignore scale) */
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -56,6 +57,7 @@ function useAutoFrame(
     if (!isFinite(box.min.x) || box.isEmpty()) return;
 
     const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
+
     const persp = camera as THREE.PerspectiveCamera;
     const vFov = persp.fov * (Math.PI / 180);
     const aspect = (size.width || 1) / (size.height || 1);
@@ -67,7 +69,9 @@ function useAutoFrame(
     const dist = Math.max(distV, distH);
 
     const target = sphere.center.clone();
-    const dir = camera.position.clone().sub(controls.target || new THREE.Vector3()).normalize();
+    const dir = camera.position.clone()
+      .sub(controls.target || new THREE.Vector3())
+      .normalize();
     const newPos = target.clone().add(dir.multiplyScalar(dist));
 
     persp.near = Math.max(0.01, dist / 100);
@@ -76,31 +80,13 @@ function useAutoFrame(
     persp.updateProjectionMatrix();
 
     controls.target.copy(target);
-    controls.minDistance = dist * 0.7;
-    controls.maxDistance = dist * 1.0;
+    controls.minDistance = dist * 1.0;
+    controls.maxDistance = dist * 2.0;
     controls.update?.();
 
-    invalidate();
+    invalidate(); 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
-}
-
-function StoneOnlyLights() {
-  const L = 5.5; 
-  const Y = 6.0; 
-  const INT = 3.0;
-  const common = { distance: 20, decay: 2 } as const;
-
-  return (
-    <>
-      <pointLight position={[ L,  Y,  0 ]} intensity={INT}   color="#ffc88a" {...common} onUpdate={(o)=>o.layers.set(1)} />
-      <pointLight position={[ 0,  Y,  L ]} intensity={INT}   color="#9bc8ff" {...common} onUpdate={(o)=>o.layers.set(1)} />
-      <pointLight position={[-L,  Y,  0 ]} intensity={INT}   color="#9fffe7" {...common} onUpdate={(o)=>o.layers.set(1)} />
-      <pointLight position={[ 0,  Y, -L ]} intensity={INT}   color="#ff9ad7" {...common} onUpdate={(o)=>o.layers.set(1)} />
-      <spotLight  position={[  6,  9,  4 ]} intensity={3.4}  color="#ffd7a1" angle={0.7} penumbra={0.6} onUpdate={(o)=>o.layers.set(1)} />
-      <pointLight position={[ 0, 10,  0 ]} intensity={1.2}  color="#ffffff" {...common} onUpdate={(o)=>o.layers.set(1)} />
-    </>
-  );
 }
 
 function SceneContent() {
@@ -110,16 +96,19 @@ function SceneContent() {
   const carat = useConfigStore((s) => s.carat);
 
   const controlsRef = useRef<any>(null);
-
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
 
-  
   const shankG = useRef<THREE.Group | null>(null);
   const headG  = useRef<THREE.Group | null>(null);
   const stoneG = useRef<THREE.Group | null>(null);
   const ringGroup = useRef<THREE.Group | null>(null);
 
-  useAutoFrame(ringGroup, controlsRef, [style, shape]);
+  const { invalidate, camera } = useThree();
+
+  useLayoutEffect(() => {
+    camera.layers.enable(0);
+    camera.layers.enable(1);
+  }, [camera]);
 
   const anchors = useMemo(() => ({
     shankA: findByName(refRoot, "ANCHOR_SHANK"),
@@ -127,13 +116,9 @@ function SceneContent() {
     stoneA: findByName(refRoot, "ANCHOR_STONE"),
   }), [refRoot]);
 
-  const { invalidate, camera } = useThree();
-
-  useEffect(() => {
-    camera.layers.enable(1);
-  }, [camera]);
-
-  useEffect(() => {
+  // ✅ place parts in a LAYOUT effect, then tick layout version
+  const [layoutTick, setLayoutTick] = useState(0);
+  useLayoutEffect(() => {
     if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
     if (anchors.headA  && headG.current)  copyWorldPR(anchors.headA,  headG.current);
 
@@ -142,6 +127,7 @@ function SceneContent() {
         copyWorldPR(anchors.stoneA, stoneG.current);
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
+        // make sure bbox exists
         requestAnimationFrame(() => {
           if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
           requestAnimationFrame(() => {
@@ -151,8 +137,11 @@ function SceneContent() {
         });
       }
     }
-    invalidate();
-  }, [anchors, style, shape, invalidate]); 
+    setLayoutTick((t) => t + 1); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchors, style, shape]);
+
+  useAutoFrame(ringGroup, controlsRef, [style, shape, carat, layoutTick]);
 
   return (
     <>
@@ -166,8 +155,6 @@ function SceneContent() {
 
       <Environment files="/hdrs/metal3.hdr" background={false} />
 
-      <StoneOnlyLights />
-
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -177,6 +164,7 @@ function SceneContent() {
         minDistance={0.2}
         maxDistance={10}
         zoomSpeed={0.9}
+        onChange={() => invalidate()}
       />
     </>
   );
