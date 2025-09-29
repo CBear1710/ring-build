@@ -42,7 +42,6 @@ const HEAD_TO_SRC: Record<ShapeKey, string> = {
   asscher: "/models/ASSCHER.glb",
 };
 
-/** Polished, higher-saturation metal presets (closer to template) */
 const METAL_TINT: Record<
   Metal,
   {
@@ -77,22 +76,37 @@ function tintMetal(root: Object3D, metal: Metal) {
   });
 }
 
-// ── Carat → scale (applied to X/Z only so height stays constant) ──────────────
-const CARAT_CAP = 1.5;
-const CARAT_BASE = 0.5;
-const CARAT_FACTOR = 0.92;
-const caratToScale = (carat: number) =>
-  Math.cbrt(Math.max(0.01, carat) / CARAT_BASE) * CARAT_FACTOR;
+/* ------------------ CARAT QUANTIZATION (no cap, gentle growth) ------------------ */
 
-// Your current controls
-const SEAT_ALPHA = -1.3;     // seat Y fraction (can be negative)
-const HEAD_BASE_SCALE_XZ = 1.1; // baseline width/depth
-const HEAD_BASE_SCALE_Y  = 1.0; // baseline height (independent of carat)
+/** Slider step size (matches UI). */
+const CARAT_STEP_SIZE = 0.25;
+/** Minimum value you support. */
+const CARAT_MIN = 0.25;
+/** Per-step additive X/Z gain (smaller = less aggressive). */
+const STEP_GAIN = 0.03; // try 0.02–0.05
 
-// Thin Y-slice thickness for asymmetric heads (fraction of bbox height)
+/** Snap incoming carat to nearest step. */
+function quantizeCarat(carat: number) {
+  const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
+  return Math.max(CARAT_MIN, Number(q.toFixed(2)));
+}
+
+/** Additive X/Z gain vs 1.00 ct, in steps * STEP_GAIN. */
+function gainFromCaratDiscrete(carat: number) {
+  const q = quantizeCarat(carat);
+  const stepsFrom1 = Math.round((q - 1.0) / CARAT_STEP_SIZE);
+  return stepsFrom1 * STEP_GAIN;
+}
+
+/* ------------------------------------------------------------------------------ */
+
+// seating controls
+const SEAT_ALPHA = -1.3;        // seat Y fraction (can be negative)
+const HEAD_BASE_SCALE_XZ = 1.1; // baseline width/depth (XZ)
+const HEAD_BASE_SCALE_Y  = 1.0; // baseline height (Y stays constant)
+
 const SEAT_BAND_FRAC = 0.2;
 
-/** Original bbox-center normalization (keeps your existing seating behavior). */
 function normalizeHeadToSeat_bbox(child: Object3D) {
   const box = new THREE.Box3().setFromObject(child);
   if (!isFinite(box.min.x) || box.isEmpty()) return;
@@ -101,9 +115,8 @@ function normalizeHeadToSeat_bbox(child: Object3D) {
   box.getCenter(centerW);
 
   const h = box.max.y - box.min.y;
-  const seatYW = box.min.y + SEAT_ALPHA * h; // raw (not clamped)
+  const seatYW = box.min.y + SEAT_ALPHA * h;
 
-  // World-space point we want at parent's origin
   const seatWorld = new THREE.Vector3(centerW.x, seatYW, centerW.z);
 
   const parent = child.parent ?? child;
@@ -114,21 +127,14 @@ function normalizeHeadToSeat_bbox(child: Object3D) {
   child.updateMatrixWorld(true);
 }
 
-/**
- * Slice-based centering for asymmetric heads (heart/pear):
- * - Use RAW seatY for seating height (unchanged vs your bbox version).
- * - Use a CLAMPED Y only to pick a slice for computing better X/Z center.
- */
 function normalizeHeadToSeat_slice(child: Object3D) {
   const bbox = new THREE.Box3().setFromObject(child);
   if (!isFinite(bbox.min.x) || bbox.isEmpty()) return;
 
   const h = bbox.max.y - bbox.min.y;
 
-  // RAW seat Y decides seating height
   const seatY_raw = bbox.min.y + SEAT_ALPHA * h;
 
-  // Clamp ONLY for sampling a slice to compute X/Z center
   const yForSlice = THREE.MathUtils.clamp(seatY_raw, bbox.min.y, bbox.max.y);
   const band = Math.max(1e-6, h * SEAT_BAND_FRAC);
   const yMin = yForSlice - band * 0.5;
@@ -173,7 +179,6 @@ function normalizeHeadToSeat_slice(child: Object3D) {
     midZ = c.z;
   }
 
-  // Seat point uses RAW Y, but slice-derived X/Z
   const seatWorld = new THREE.Vector3(midX, seatY_raw, midZ);
 
   const parent = child.parent ?? child;
@@ -231,16 +236,16 @@ export default function HeadModel({
       normalizeHeadToSeat_bbox(child);
     }
 
-    // Record base Y (used to keep height constant across carat changes)
+    // Record base Y (kept constant across carat)
     baseYScaleRef.current = child.scale.y || 1;
 
     // Tint
     tintMetal(child, metal);
 
-    // Initial sizing: X/Z respond to carat; Y uses independent baseline
-    const capped = Math.min(carat, CARAT_CAP);
-    const xz = HEAD_BASE_SCALE_XZ * caratToScale(capped);
-    const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
+    // Initial sizing: X/Z use discrete gentle gain; Y fixed
+    const r = gainFromCaratDiscrete(carat);
+    const xz = HEAD_BASE_SCALE_XZ + r;
+    const y  = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
   }, [scene, url, shape]);
@@ -255,9 +260,9 @@ export default function HeadModel({
   useEffect(() => {
     const child = childRef.current;
     if (!child) return;
-    const capped = Math.min(carat, CARAT_CAP);
-    const xz = HEAD_BASE_SCALE_XZ * caratToScale(capped);
-    const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
+    const r = gainFromCaratDiscrete(carat);
+    const xz = HEAD_BASE_SCALE_XZ + r;
+    const y  = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
   }, [carat]);

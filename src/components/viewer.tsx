@@ -18,7 +18,6 @@ function findByName(root: THREE.Object3D, name: string) {
   return hit;
 }
 
-/** Copy world Position + Rotation (ignore Scale) */
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -30,7 +29,6 @@ function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   dst.updateMatrixWorld(true);
 }
 
-/** Snap stone to head bbox center; keep group scale at 1 */
 function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(headG);
@@ -78,8 +76,8 @@ function useAutoFrame(
     persp.updateProjectionMatrix();
 
     controls.target.copy(target);
-    controls.minDistance = dist * 1.0;
-    controls.maxDistance = dist * 2.0;
+    controls.minDistance = dist * 0.7;
+    controls.maxDistance = dist * 1.0;
     controls.update?.();
 
     invalidate();
@@ -87,11 +85,9 @@ function useAutoFrame(
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
 }
 
-/** Colored lights that illuminate only objects on layer 1 (the stone). */
 function StoneOnlyLights() {
-  // Surround the stone with saturated colors; lights are forced to layer 1.
-  const L = 5.5; // radius
-  const Y = 6.0; // height
+  const L = 5.5; 
+  const Y = 6.0; 
   const INT = 3.0;
   const common = { distance: 20, decay: 2 } as const;
 
@@ -115,16 +111,15 @@ function SceneContent() {
 
   const controlsRef = useRef<any>(null);
 
-  // Reference anchors
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
 
-  // Groups
+  
   const shankG = useRef<THREE.Group | null>(null);
   const headG  = useRef<THREE.Group | null>(null);
   const stoneG = useRef<THREE.Group | null>(null);
   const ringGroup = useRef<THREE.Group | null>(null);
 
-  useAutoFrame(ringGroup, controlsRef, [style, shape, carat]);
+  useAutoFrame(ringGroup, controlsRef, [style, shape]);
 
   const anchors = useMemo(() => ({
     shankA: findByName(refRoot, "ANCHOR_SHANK"),
@@ -134,7 +129,6 @@ function SceneContent() {
 
   const { invalidate, camera } = useThree();
 
-  // Camera must see layer 1 so stone-only lights are visible
   useEffect(() => {
     camera.layers.enable(1);
   }, [camera]);
@@ -158,7 +152,7 @@ function SceneContent() {
       }
     }
     invalidate();
-  }, [anchors, style, shape, invalidate]); // no carat here
+  }, [anchors, style, shape, invalidate]); 
 
   return (
     <>
@@ -170,10 +164,8 @@ function SceneContent() {
         <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
       </group>
 
-      {/* Neutral environment (retains shank/head metal look) */}
       <Environment files="/hdrs/metal3.hdr" background={false} />
 
-      {/* Colored lights that affect ONLY the stone */}
       <StoneOnlyLights />
 
       <OrbitControls
@@ -182,8 +174,8 @@ function SceneContent() {
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        minDistance={0.4}
-        maxDistance={6}
+        minDistance={0.2}
+        maxDistance={10}
         zoomSpeed={0.9}
       />
     </>
