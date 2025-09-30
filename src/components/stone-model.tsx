@@ -36,14 +36,14 @@ const TEMPLATE_BASE: Record<
   pear:     { base: [0.95, 0.85, 1.00], pos: [0, 1.05, -0.6] },
   emerald:  { base: [1.05, 0.95, 1.00], pos: [0, 0.80, 0] },
   marquise: { base: [1.05, 1.05, 0.90], pos: [0, 1.10, 0] },
-  heart:    { base: [0.85, 0.85, 0.80], pos: [0, 1.10, -0.6] },
+  heart:    { base: [0.75, 0.95, 0.70], pos: [0, 1.20, -0.6] },
   asscher:  { base: [0.83, 0.83, 0.90], pos: [0, 0.80, 0] },
 };
 
 
 const CARAT_STEP_SIZE = 0.25;
 const CARAT_MIN = 0.25;
-const STEP_GAIN = 0.03; 
+const STEP_GAIN = 0.02; 
 
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
@@ -143,7 +143,8 @@ export default function StoneModel({
     return () => {
       aborted = true;
     };
-  }, [url, shape, carat]); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, shape]); 
 
   useEffect(() => {
     const content = contentRef.current;

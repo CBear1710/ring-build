@@ -11,7 +11,6 @@ export default function Page() {
     <main className="min-h-screen bg-background">
       <UrlSync />
 
-      {/* Put the provider ABOVE everything that needs to read/write view state */}
       <ViewProvider>
         <div className="container mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div

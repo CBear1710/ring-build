@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useThree } from "@react-three/fiber";
 import { useView } from "@/components/view-context";
 
+const SPIN_SPEED = 1.6; 
+
 const DIRS = {
   perspective: new THREE.Vector3(10, 8, -13).normalize(),
-  top:   new THREE.Vector3(0,  1,  0.001).normalize(),
+  top:   new THREE.Vector3(0,  1,  0.001).normalize(), 
   front: new THREE.Vector3(0,  0.3, 1).normalize(),
   side:  new THREE.Vector3(1,  0.3, 0).normalize(),
 };
@@ -24,7 +27,6 @@ export default function ViewAnimator() {
   });
   const fallbackTargetRef = useRef<THREE.Vector3>(TARGET.clone());
 
-  // mark "custom" on user interaction
   useEffect(() => {
     const c = controls;
     if (!c) return;
@@ -33,41 +35,52 @@ export default function ViewAnimator() {
     return () => c?.removeEventListener?.("start", onStart);
   }, [controls, setView]);
 
-  // spin toggle + keep repainting in demand mode
   useEffect(() => {
     const c = controls as any;
-    if (c) {
-      c.autoRotate = !!view360;
-      c.autoRotateSpeed = 0.1;
+    if (!c) return;
+
+    c.autoRotate = !!view360;
+    c.autoRotateSpeed = SPIN_SPEED;
+
+    let id: number | null = null;
+    const tick = () => {
+      c.update?.();
+      invalidate();
+      if (c.autoRotate) id = requestAnimationFrame(tick);
+    };
+
+    if (c.autoRotate) {
+      id = requestAnimationFrame(tick);
+    } else {
+      // settle
       c.update?.();
       invalidate();
     }
-    let id: number | null = null;
-    if (view360) {
-      const tick = () => {
-        invalidate();
-        id = requestAnimationFrame(tick);
-      };
-      id = requestAnimationFrame(tick);
-    }
-    return () => { if (id) cancelAnimationFrame(id); };
+
+    return () => {
+      if (id) cancelAnimationFrame(id);
+    };
   }, [controls, view360, invalidate]);
 
-  // animate to named views
+  // Animate to named views (front/top/side), smooth easing
   useEffect(() => {
     if (view === "custom") {
       lastViewRef.current = "custom";
       return;
     }
 
-    // cancel prior anim
-    if (rafRef.current) cancelAnimationFrame(rafRef.current), (rafRef.current = null);
+    // cancel any prior animation
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
 
     const ctrl: any = controls;
     const persp = camera as THREE.PerspectiveCamera;
 
     const curPos = persp.position.clone();
-    const curTarget = (ctrl?.target as THREE.Vector3) ?? fallbackTargetRef.current.clone();
+    const curTarget =
+      (ctrl?.target as THREE.Vector3) ?? fallbackTargetRef.current.clone();
     const curDist = curPos.distanceTo(curTarget);
 
     // remember distance for previous named view
@@ -87,7 +100,7 @@ export default function ViewAnimator() {
 
     const step = (t: number) => {
       const u = Math.min((t - t0) / T, 1);
-      const k = 1 - Math.pow(1 - u, 3);
+      const k = 1 - Math.pow(1 - u, 3); // easeOutCubic
 
       persp.position.lerpVectors(curPos, goalPos, k);
 
@@ -111,13 +124,14 @@ export default function ViewAnimator() {
         rafRef.current = null;
       }
     };
+
     rafRef.current = requestAnimationFrame(step);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [view, camera, controls, size.width, invalidate, view360]);
+  }, [view, camera, controls, size.width, invalidate]);
 
   return null;
 }

@@ -12,6 +12,7 @@ import HeadModel from "@/components/head-model";
 import StoneModel from "@/components/stone-model";
 import { useConfigStore } from "@/store/configurator";
 import { useView } from "@/components/view-context";
+import ViewAnimator from "@/components/view-animator"; // ⟵ mount this
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
@@ -19,6 +20,7 @@ function findByName(root: THREE.Object3D, name: string) {
   return hit;
 }
 
+/** copy only world position+rotation (ignore scale) */
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -42,21 +44,26 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   stoneG.updateMatrixWorld(true);
 }
 
+
 function useAutoFrame(
   groupRef: React.RefObject<THREE.Group | null>,
   controlsRef: React.RefObject<any>,
   deps: unknown[],
-  padding = 1.2
+  padding = 1.2,
+  view360 = false
 ) {
   const { camera, size, invalidate } = useThree();
+
   useLayoutEffect(() => {
-    const root = groupRef.current; const controls = controlsRef.current;
+    const root = groupRef.current;
+    const controls = controlsRef.current;
     if (!root || !camera || !controls) return;
 
     const box = new THREE.Box3().setFromObject(root);
     if (!isFinite(box.min.x) || box.isEmpty()) return;
 
-    const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
 
     const persp = camera as THREE.PerspectiveCamera;
     const vFov = persp.fov * (Math.PI / 180);
@@ -68,98 +75,33 @@ function useAutoFrame(
     const distH = radius / Math.tan(hFov / 2);
     const dist = Math.max(distV, distH);
 
-    const target = sphere.center.clone();
-    const dir = camera.position.clone()
-      .sub(controls.target || new THREE.Vector3())
-      .normalize();
-    const newPos = target.clone().add(dir.multiplyScalar(dist));
+    const newTarget = sphere.center.clone();
 
     persp.near = Math.max(0.01, dist / 100);
     persp.far = dist * 10;
-    camera.position.copy(newPos);
+
+    if (view360) {
+      const oldTarget = controls.target ? controls.target.clone() : new THREE.Vector3();
+      const delta = newTarget.clone().sub(oldTarget);
+      camera.position.add(delta);
+      controls.target.copy(newTarget);
+    } else {
+      const dir = camera.position
+        .clone()
+        .sub(controls.target || new THREE.Vector3())
+        .normalize();
+      const newPos = newTarget.clone().add(dir.multiplyScalar(dist));
+      camera.position.copy(newPos);
+      controls.target.copy(newTarget);
+      controls.minDistance = dist * 0.7;
+      controls.maxDistance = dist * 1.2;
+    }
+
     persp.updateProjectionMatrix();
-
-    controls.target.copy(target);
-    controls.minDistance = dist * 1.0;
-    controls.maxDistance = dist * 2.0;
     controls.update?.();
-
     invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupRef, controlsRef, size.width, size.height, ...deps]);
-}
-
-/** Eased camera fly-to */
-function animateCamera(
-  camera: THREE.PerspectiveCamera,
-  controls: any,
-  toPos: THREE.Vector3,
-  toTarget: THREE.Vector3,
-  duration = 650,
-  invalidate?: () => void
-) {
-  const fromPos = camera.position.clone();
-  const fromTgt = controls.target.clone();
-  const start = performance.now();
-  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-
-  function tick(now: number) {
-    const k = Math.min(1, (now - start) / duration);
-    const e = ease(k);
-
-    camera.position.set(
-      THREE.MathUtils.lerp(fromPos.x, toPos.x, e),
-      THREE.MathUtils.lerp(fromPos.y, toPos.y, e),
-      THREE.MathUtils.lerp(fromPos.z, toPos.z, e)
-    );
-    controls.target.set(
-      THREE.MathUtils.lerp(fromTgt.x, toTarget.x, e),
-      THREE.MathUtils.lerp(fromTgt.y, toTarget.y, e),
-      THREE.MathUtils.lerp(fromTgt.z, toTarget.z, e)
-    );
-
-    camera.updateProjectionMatrix();
-    controls.update?.();
-    invalidate?.();
-
-    if (k < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-
-/** Correct mapping for a typical three.js scene (Y up, camera starts at +Z) */
-const VIEW_DIRS: Record<"top"|"side"|"front", THREE.Vector3> = {
-  front: new THREE.Vector3(0, 0, 1), // look from +Z
-  top:   new THREE.Vector3(0, 1, 0), // look from +Y
-  side:  new THREE.Vector3(1, 0, 0), // look from +X (right side)
-};
-
-function goToNamedView(
-  mode: "top" | "side" | "front",
-  camera: THREE.PerspectiveCamera,
-  controls: any,
-  root: THREE.Object3D,
-  invalidate?: () => void
-) {
-  const box = new THREE.Box3().setFromObject(root);
-  if (!isFinite(box.min.x) || box.isEmpty()) return;
-
-  const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
-
-  const vFov = camera.fov * (Math.PI / 180);
-  const aspect = (camera as any).aspect || 1;
-  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-
-  const radius = sphere.radius * 1.2;
-  const distV = radius / Math.tan(vFov / 2);
-  const distH = radius / Math.tan(hFov / 2);
-  const dist = Math.max(distV, distH);
-
-  const tgt = sphere.center.clone();
-  const dir = VIEW_DIRS[mode].clone().normalize();
-  const pos = tgt.clone().add(dir.multiplyScalar(dist));
-
-  animateCamera(camera, controls, pos, tgt, 650, invalidate);
+  }, [groupRef, controlsRef, size.width, size.height, view360, ...deps]);
 }
 
 function SceneContent() {
@@ -167,8 +109,6 @@ function SceneContent() {
   const metal = useConfigStore((s) => s.metal);
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
-
-  const { view, view360, setControls } = useView();
 
   const controlsRef = useRef<any>(null);
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
@@ -178,18 +118,14 @@ function SceneContent() {
   const stoneG = useRef<THREE.Group | null>(null);
   const ringGroup = useRef<THREE.Group | null>(null);
 
-  const { invalidate, camera } = useThree();
+  const { invalidate } = useThree();
+  const { setControls, view360 } = useView();
 
-  useLayoutEffect(() => {
-    camera.layers.enable(0);
-    camera.layers.enable(1);
-  }, [camera]);
-
+  // expose controls to the View context
   useEffect(() => {
     setControls(controlsRef.current);
     return () => setControls(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setControls]);
 
   const anchors = useMemo(() => ({
     shankA: findByName(refRoot, "ANCHOR_SHANK"),
@@ -220,43 +156,7 @@ function SceneContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
 
-  useAutoFrame(ringGroup, controlsRef, [style, shape, carat, layoutTick]);
-
-  // Spin loop to work with frameloop="demand"
-  useEffect(() => {
-    const controls = controlsRef.current;
-    let raf = 0;
-    function loop() {
-      if (!controls || !controls.autoRotate) return;
-      controls.update?.();
-      invalidate();
-      raf = requestAnimationFrame(loop);
-    }
-    if (controls && view360) {
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.6;
-      raf = requestAnimationFrame(loop);
-    } else if (controls) {
-      controls.autoRotate = false;
-    }
-    return () => {
-      if (raf)  cancelAnimationFrame(raf);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view360]);
-
-  // React to named view changes
-  useEffect(() => {
-    const controls = controlsRef.current;
-    const root = ringGroup.current;
-    if (!controls || !root) return;
-
-    if (view === "top" || view === "side" || view === "front") {
-      controls.autoRotate = false;
-      goToNamedView(view, camera as THREE.PerspectiveCamera, controls, root, invalidate);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, layoutTick]);
+  useAutoFrame(ringGroup, controlsRef, [style, shape, layoutTick], 1.2, view360);
 
   return (
     <>
@@ -268,7 +168,11 @@ function SceneContent() {
         <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
       </group>
 
+      {/* Keep the metal HDR for metals */}
       <Environment files="/hdrs/metal3.hdr" background={false} />
+
+      {/* ⟵ This actually reacts to your view/view360 state */}
+      <ViewAnimator />
 
       <OrbitControls
         ref={controlsRef}
