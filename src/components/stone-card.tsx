@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useConfigStore } from "@/store/configurator";
+
+/* ---------------------------------- DATA --------------------------------- */
 
 const SHAPES = [
   { key: "round",    label: "Round",    src: "/stones/round.png" },
@@ -18,13 +21,24 @@ const SHAPES = [
   { key: "asscher",  label: "Asscher",  src: "/stones/asscher.png" },
 ] as const;
 
-export default function StoneCard() {
-  const shape   = useConfigStore(s => s.shape);
-  const carat   = useConfigStore(s => s.carat);
-  const setShape = useConfigStore(s => s.setShape);
-  const setCarat = useConfigStore(s => s.setCarat);
+const MIN  = 0.25;
+const MAX  = 5;
+const STEP = 0.25;
+const TICKS = [0.25, 1, 2, 3, 4, 5];
 
-  const activeLabel = SHAPES.find(s => s.key === shape)?.label ?? "";
+/** map a value in [MIN..MAX] to a % along the track */
+const pct = (v: number) => ((v - MIN) / (MAX - MIN)) * 100;
+
+/* -------------------------------- COMPONENT ------------------------------- */
+
+export default function StoneCard() {
+  const shape     = useConfigStore((s) => s.shape);
+  const carat     = useConfigStore((s) => s.carat);
+  const setShape  = useConfigStore((s) => s.setShape);
+  const setCarat  = useConfigStore((s) => s.setCarat);
+
+  const activeLabel =
+    SHAPES.find((s) => s.key === shape)?.label ?? "";
 
   return (
     <Card className="rounded-2xl shadow-sm">
@@ -34,25 +48,25 @@ export default function StoneCard() {
             <CardTitle className="text-[15px] tracking-wide">SHAPE</CardTitle>
             <span className="text-sm text-muted-foreground">{activeLabel}</span>
           </div>
-          
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        
+        {/* Shape picker */}
         <div className="mb-4 flex flex-wrap gap-3">
-          {SHAPES.map(opt => {
+          {SHAPES.map((opt) => {
             const selected = shape === opt.key;
             return (
               <button
                 key={opt.key}
-                onClick={() => setShape(opt.key as typeof shape)}
+                onClick={() => setShape(opt.key as any)}
                 title={opt.label}
                 className={[
                   "relative w-14 h-14 rounded-full border-2 overflow-hidden bg-white",
                   selected ? "border-black" : "border-gray-300",
-                  "focus:outline-none focus:ring-2 focus:ring-black/40"
+                  "focus:outline-none focus:ring-2 focus:ring-black/40",
                 ].join(" ")}
+                aria-pressed={selected}
               >
                 <Image
                   src={opt.src}
@@ -71,25 +85,36 @@ export default function StoneCard() {
         <div className="mt-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[15px] font-semibold tracking-wide">CARAT</span>
-            <span className="text-sm text-muted-foreground">{carat.toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground">
+              {carat.toFixed(2)}
+            </span>
           </div>
 
-          
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>0.25</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          <div className="relative">
+            <Slider
+              value={[carat]}
+              min={MIN}
+              max={MAX}
+              step={STEP}
+              onValueChange={(v) => setCarat(Number(v[0]))}
+              className="w-full"
+              aria-label="Carat"
+            />
+            <div className="relative h-5 mt-2">
+              {TICKS.map((v) => (
+                <span
+                  key={v}
+                  style={{ left: `${pct(v)}%` }}
+                  className="absolute -translate-x-1/2 text-xs text-muted-foreground select-none pointer-events-none"
+                  aria-hidden
+                >
+                  {Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2)}
+                </span>
+              ))}
+            </div>
           </div>
-
-          <Slider
-            value={[carat]}
-            min={0.25}
-            max={5}
-            step={0.25}
-            onValueChange={(v) => setCarat(Number(v[0]))}
-            className="w-full"
-          />
         </div>
       </CardContent>
-      
     </Card>
   );
 }
