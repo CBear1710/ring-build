@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useConfigStore } from "@/store/configurator";
 
 type Props = { className?: string };
@@ -51,7 +51,7 @@ export default function SummaryPanel({ className = "" }: Props) {
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
 
-  // Engraving (names match your EngravingCard; fallbacks keep TS happy)
+  // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
   const engravingFont = useConfigStore((s: any) => s.engravingFont ?? "Regular");
 
@@ -147,8 +147,35 @@ export default function SummaryPanel({ className = "" }: Props) {
   }
   // -----------------------------------------
 
-  const rows = useMemo(
-    () => [
+  const showEngraving = (engravingText ?? "").trim().length > 0;
+
+  const rows = useMemo(() => {
+    // PERSONALIZE group — build items dynamically
+    const personalizeItems: Array<{ k: string; v: any }> = [];
+
+    if (showEngraving) {
+      personalizeItems.push(
+        { k: "engraving", v: engravingText },
+        { k: "engravingFont", v: engravingFont }
+      );
+    }
+
+    personalizeItems.push({
+      k: "ringSize",
+      v:
+        ringSizeNum != null ? (
+          <div className="flex flex-col items-end text-right">
+            <span>
+              {ringSizeNum} ({(ringSizeMM ?? 0).toFixed(1)} mm)
+            </span>
+            <span className="text-xs text-black/50">(US, MX, CA)</span>
+          </div>
+        ) : (
+          "—"
+        ),
+    });
+
+    return [
       {
         group: "SETTING",
         items: [
@@ -165,38 +192,21 @@ export default function SummaryPanel({ className = "" }: Props) {
       },
       {
         group: "PERSONALIZE",
-        items: [
-          { k: "engraving", v: engravingText || "—" },
-          { k: "engravingFont", v: engravingFont || "—" },
-          {
-            k: "ringSize",
-            v:
-              ringSizeNum != null ? (
-                <div className="flex flex-col items-end text-right">
-                  <span>
-                    {ringSizeNum} ({(ringSizeMM ?? 0).toFixed(1)} mm)
-                  </span>
-                  <span className="text-xs text-black/50">(US, MX, CA)</span>
-                </div>
-              ) : (
-                "—"
-              ),
-          },
-        ],
+        items: personalizeItems,
       },
-    ],
-    [
-      style,
-      metal,
-      purity,
-      shape,
-      carat,
-      engravingText,
-      engravingFont,
-      ringSizeNum,
-      ringSizeMM,
-    ]
-  );
+    ];
+  }, [
+    style,
+    metal,
+    purity,
+    shape,
+    carat,
+    engravingText,
+    engravingFont,
+    ringSizeNum,
+    ringSizeMM,
+    showEngraving,
+  ]);
 
   return (
     <aside

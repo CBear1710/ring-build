@@ -1,106 +1,112 @@
-"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { JSX, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Group, Mesh, BufferGeometry, BufferAttribute } from "three";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { useConfigStore } from "@/store/configurator";
+import { resolveEngravingFontUrlAsync } from "@/lib/engraving-fonts";
 
-// Cast Text to any so we can pass curveRadius without TS complaining
-const TextAny = Text as unknown as (props: any) => JSX.Element;
+/** copy only world position + rotation (ignore scale) */
+function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
+  src.updateWorldMatrix(true, true);
+  const p = new THREE.Vector3();
+  const q = new THREE.Quaternion();
+  src.matrixWorld.decompose(p, q, new THREE.Vector3());
+  dst.position.copy(p);
+  dst.quaternion.copy(q);
+  dst.scale.set(1, 1, 1);
+  dst.updateMatrixWorld(true);
+}
 
-type Props = {
-  shankRef: React.RefObject<Group | null>;
-  inwardOffset?: number;          // how much to push text into the band (local Z-)
-  textSize?: number;              // world units
-  extraCurveTightness?: number;   // add to measured inner radius
-  letterSpacing?: number;
-};
+type Props = { anchor?: THREE.Object3D | null };
 
-export default function Engraving3D({
-  shankRef,
-  inwardOffset = -0.28,
-  textSize = 1.05,
-  extraCurveTightness = 0,
-  letterSpacing = -0.01,
-}: Props) {
-  // Read engraving text/font the same way as before (with safe fallbacks)
-  const engravingText = useConfigStore((s: any) =>
-    typeof s?.engravingText === "string"
-      ? s.engravingText
-      : s?.engraving?.text
-      ? String(s.engraving.text)
-      : ""
-  );
+// Cast to allow Troika-only props like curveRadius, suspend
+const TroikaText = Text as unknown as React.FC<any>;
 
-  const fontUrl = useConfigStore((s: any) => s?.engravingFontUrl || s?.engravingFont || "/fonts/Inter-Regular.woff");
+export default function EngravingModel({ anchor }: Props) {
+  const text          = useConfigStore((s) => s.engravingText) || "";
+  const fontEnum      = useConfigStore((s) => s.engravingFont);
+  const fontOverride  = useConfigStore((s) => s.engravingFontUrl);
+  const sizeMM        = useConfigStore((s) => s.engravingSize || 1.6);
+  const letterSpacing = useConfigStore((s) => s.engravingLetterSpacing || 0.02);
+  const color         = useConfigStore((s) => s.engravingColor || "#222222");
+  const opacity       = useConfigStore((s) => s.engravingOpacity ?? 1);
+  const side          = useConfigStore((s) => s.engravingSide || "inner");
+  const offsetAngle   = useConfigStore((s) => s.engravingOffsetX || 0);
 
-  const text = useMemo(() => (engravingText || "").trim(), [engravingText]);
-  const holder = useRef<Group | null>(null);
+  const [fontUrl, setFontUrl] = useState<string | null>(null);
 
-  // Measure an "inner radius" from the shank geometry to bend the text around
-  const curveRadius = useMemo(() => {
-    const parent = shankRef.current;
-    if (!parent) return -(8.5 + extraCurveTightness); // fallback
-
-    let minR = Infinity;
-    const v = new THREE.Vector3();
-
-    parent.traverse((o) => {
-      const m = o as Mesh;
-      const g = m?.geometry as BufferGeometry | undefined;
-      const pos = g?.attributes?.position as BufferAttribute | undefined;
-      if (!m?.isMesh || !pos) return;
-
-      for (let i = 0; i < pos.count; i++) {
-        v.fromBufferAttribute(pos, i);
-        m.localToWorld(v);
-        // sample near band mid-height to avoid prongs/heads
-        if (v.y > -2.5 && v.y < 2.5) {
-          const r = Math.hypot(v.x, v.z);
-          if (r < minR) minR = r;
-        }
-      }
-    });
-
-    if (!isFinite(minR) || minR === Infinity) return -(8.5 + extraCurveTightness);
-    const inner = Math.max(2.0, minR * 0.98);
-    return -(inner + extraCurveTightness);
-  }, [shankRef, extraCurveTightness]);
-
-  // Nudge text slightly into the band
+  // Resolve + precheck the URL once inputs change
   useEffect(() => {
-    if (!holder.current) return;
-    holder.current.position.z += inwardOffset;
-    holder.current.updateMatrixWorld(true);
-  }, [inwardOffset]);
+    let alive = true;
+    (async () => {
+      const url = await resolveEngravingFontUrlAsync(fontEnum, fontOverride);
+      if (alive) setFontUrl(url);
+    })();
+    return () => { alive = false; };
+  }, [fontEnum, fontOverride]);
 
-  if (!text) return null;
+  const group = useRef<THREE.Group>(null);
+  const { invalidate } = useThree();
 
-  const maxWidth = Math.abs(curveRadius) * Math.PI * 0.75;
+  useLayoutEffect(() => {
+    const g = group.current;
+    if (!g || !anchor) return;
+
+    // hide the placeholder anchor mesh (e.g., "Cylinder")
+    const mesh = anchor as THREE.Mesh;
+    mesh.visible = false;
+
+    copyWorldPR(anchor, g);
+    g.rotation.x = side === "inner" ? Math.PI : 0;
+
+    // Nudge slightly along +Z to avoid z-fighting
+    const fw = new THREE.Vector3(0, 0, 1).applyQuaternion(
+      anchor.getWorldQuaternion(new THREE.Quaternion())
+    );
+    g.position.add(fw.multiplyScalar(side === "inner" ? -0.002 : 0.002));
+
+    g.updateMatrixWorld(true);
+    invalidate();
+  }, [anchor, side, invalidate]);
+
+  // derive curve radius from anchor bounds
+  const curveRadius = useMemo(() => {
+    if (!anchor) return side === "inner" ? -0.9 : 0.9;
+    const box = new THREE.Box3().setFromObject(anchor);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const r = Math.max(size.x, size.z) * 0.5;
+    return side === "inner" ? -Math.max(0.001, r) : Math.max(0.001, r);
+  }, [anchor, side]);
+
+  // Don’t render text until we have both a message and a resolved URL
+  if (!text || !fontUrl) return <group ref={group} />;
+
+  const fontSize = sizeMM * 0.05;
 
   return (
-    <group ref={holder} renderOrder={-10}>
-      <TextAny
+    <group ref={group}>
+      <TroikaText
+        suspend={false}                 // prevents React Suspense blanking the scene
         font={fontUrl}
-        fontSize={textSize}
+        fontSize={fontSize}
+        letterSpacing={letterSpacing}
+        curveRadius={curveRadius}
+        rotation={[0, offsetAngle, 0]}
         anchorX="center"
         anchorY="middle"
-        textAlign="center"
-        letterSpacing={letterSpacing}
-        maxWidth={maxWidth}
-        curveRadius={curveRadius}
-        color="#222222"
-       
-        material-polygonOffset
-        material-polygonOffsetFactor={-2}
-        material-polygonOffsetUnits={-2}
-        material-metalness={0.15}
-        material-roughness={0.9}
       >
         {text}
-      </TextAny>
+        <meshStandardMaterial
+          roughness={0.35}
+          metalness={0.2}
+          color={color}
+          transparent={opacity < 1}
+          opacity={opacity}
+          toneMapped
+        />
+      </TroikaText>
     </group>
   );
 }
