@@ -23,7 +23,7 @@ export default function EngravingCard() {
   const setFontUrl = useConfigStore((s) => s.setEngravingFontUrl);
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className="rounded-2xl shadow-sm mb-4"> 
       <CardHeader className="pb-2">
         <CardTitle className="text-[15px] tracking-wide">ADD ENGRAVING</CardTitle>
       </CardHeader>
