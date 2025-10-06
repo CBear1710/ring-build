@@ -1,112 +1,116 @@
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as THREE from "three";
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Text } from "@react-three/drei";
+import React, { useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { useConfigStore } from "@/store/configurator";
-import { resolveEngravingFontUrlAsync } from "@/lib/engraving-fonts";
 
-/** copy only world position + rotation (ignore scale) */
-function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
-  src.updateWorldMatrix(true, true);
-  const p = new THREE.Vector3();
-  const q = new THREE.Quaternion();
-  src.matrixWorld.decompose(p, q, new THREE.Vector3());
-  dst.position.copy(p);
-  dst.quaternion.copy(q);
-  dst.scale.set(1, 1, 1);
-  dst.updateMatrixWorld(true);
+const MIRROR_X = true;   
+const ROTATE_PI = false; 
+
+function makeEngravingTexture(
+  text: string,
+  fontFamily: string,
+  maxAniso: number
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1100;
+  canvas.height = 28;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  const italic = /italic/i.test(fontFamily) ? "italic" : "normal";
+  const family = fontFamily.replace(/italic/gi, "").trim() || "Arial";
+
+  ctx.font = `${italic} 12px ${family}`;
+  const totalWidth = ctx.measureText(text).width;
+  let penX = (canvas.width - totalWidth) / 2;
+  const midY = canvas.height / 2 - 6; 
+
+  for (const ch of text) {
+    const w = ctx.measureText(ch).width;
+    ctx.fillText(ch, penX, midY);
+    penX += w;
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = Math.min(16, maxAniso);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+
+  if (MIRROR_X) {
+    tex.repeat.x = -1;
+    tex.offset.x = 1;
+  }
+  if (ROTATE_PI) {
+    tex.center.set(0.5, 0.5);
+    tex.rotation = Math.PI;
+  }
+
+  tex.needsUpdate = true;
+  return tex;
 }
 
-type Props = { anchor?: THREE.Object3D | null };
+type Props = { sourceMesh: THREE.Mesh | null };
 
-// Cast to allow Troika-only props like curveRadius, suspend
-const TroikaText = Text as unknown as React.FC<any>;
+export default function EngravingModel({ sourceMesh }: Props) {
+  const text = useConfigStore((s) => s.engravingText);
+  const fontKey = useConfigStore((s) => s.engravingFont);
+  const { gl } = useThree();
 
-export default function EngravingModel({ anchor }: Props) {
-  const text          = useConfigStore((s) => s.engravingText) || "";
-  const fontEnum      = useConfigStore((s) => s.engravingFont);
-  const fontOverride  = useConfigStore((s) => s.engravingFontUrl);
-  const sizeMM        = useConfigStore((s) => s.engravingSize || 1.6);
-  const letterSpacing = useConfigStore((s) => s.engravingLetterSpacing || 0.02);
-  const color         = useConfigStore((s) => s.engravingColor || "#222222");
-  const opacity       = useConfigStore((s) => s.engravingOpacity ?? 1);
-  const side          = useConfigStore((s) => s.engravingSide || "inner");
-  const offsetAngle   = useConfigStore((s) => s.engravingOffsetX || 0);
+  const fontFamily = useMemo(() => {
+    switch (fontKey) {
+      case "regular": return "Segoe UI";
+      case "italics": return "italic Segoe UI"; 
+      case "script":  return "Brush Script MT, Segoe Script, cursive";
+      case "roman":   return "Times New Roman, Times, serif";
+      default:        return "Arial";
+    }
+  }, [fontKey]);
 
-  const [fontUrl, setFontUrl] = useState<string | null>(null);
+  const { cylGeo, pos, quat, scl } = useMemo(() => {
+    if (!sourceMesh) return { cylGeo: null, pos: null, quat: null, scl: null } as any;
+    sourceMesh.updateWorldMatrix(true, true);
+    const mat = sourceMesh.matrixWorld.clone();
+    const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+    mat.decompose(p, q, s);
+    return { cylGeo: sourceMesh.geometry as THREE.BufferGeometry, pos: p, quat: q, scl: s };
+  }, [sourceMesh]);
 
-  // Resolve + precheck the URL once inputs change
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const url = await resolveEngravingFontUrlAsync(fontEnum, fontOverride);
-      if (alive) setFontUrl(url);
-    })();
-    return () => { alive = false; };
-  }, [fontEnum, fontOverride]);
+  const texture = useMemo(() => {
+    if (!text) return null;
+    const cap = gl.capabilities.getMaxAnisotropy?.() ?? 16;
+    return makeEngravingTexture(text, fontFamily, cap);
+  }, [text, fontFamily, gl]);
 
-  const group = useRef<THREE.Group>(null);
-  const { invalidate } = useThree();
-
-  useLayoutEffect(() => {
-    const g = group.current;
-    if (!g || !anchor) return;
-
-    // hide the placeholder anchor mesh (e.g., "Cylinder")
-    const mesh = anchor as THREE.Mesh;
-    mesh.visible = false;
-
-    copyWorldPR(anchor, g);
-    g.rotation.x = side === "inner" ? Math.PI : 0;
-
-    // Nudge slightly along +Z to avoid z-fighting
-    const fw = new THREE.Vector3(0, 0, 1).applyQuaternion(
-      anchor.getWorldQuaternion(new THREE.Quaternion())
-    );
-    g.position.add(fw.multiplyScalar(side === "inner" ? -0.002 : 0.002));
-
-    g.updateMatrixWorld(true);
-    invalidate();
-  }, [anchor, side, invalidate]);
-
-  // derive curve radius from anchor bounds
-  const curveRadius = useMemo(() => {
-    if (!anchor) return side === "inner" ? -0.9 : 0.9;
-    const box = new THREE.Box3().setFromObject(anchor);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const r = Math.max(size.x, size.z) * 0.5;
-    return side === "inner" ? -Math.max(0.001, r) : Math.max(0.001, r);
-  }, [anchor, side]);
-
-  // Don’t render text until we have both a message and a resolved URL
-  if (!text || !fontUrl) return <group ref={group} />;
-
-  const fontSize = sizeMM * 0.05;
+  if (!text || !cylGeo || !pos || !quat || !scl) return null;
 
   return (
-    <group ref={group}>
-      <TroikaText
-        suspend={false}                 // prevents React Suspense blanking the scene
-        font={fontUrl}
-        fontSize={fontSize}
-        letterSpacing={letterSpacing}
-        curveRadius={curveRadius}
-        rotation={[0, offsetAngle, 0]}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {text}
+    <group position={pos} quaternion={quat} scale={scl}>
+      <mesh geometry={cylGeo} castShadow receiveShadow>
         <meshStandardMaterial
-          roughness={0.35}
-          metalness={0.2}
-          color={color}
-          transparent={opacity < 1}
-          opacity={opacity}
+          map={texture ?? undefined}
+          color="#ffffff"
+          metalness={0}
+          roughness={0.15}
+          transparent
+          alphaTest={0.05}
+          side={THREE.DoubleSide}
           toneMapped
+          emissive={"#ffffff"}
+          emissiveIntensity={0.15}
         />
-      </TroikaText>
+      </mesh>
     </group>
   );
 }

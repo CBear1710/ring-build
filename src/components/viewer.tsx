@@ -10,20 +10,21 @@ import { OBJLoader } from "three-stdlib";
 import ShankModel from "@/components/shank-model";
 import HeadModel from "@/components/head-model";
 import StoneModel from "@/components/stone-model";
-import EngravingModel from "@/components/engraving-model"; 
+import EngravingModel from "@/components/engraving-model";
 import { useConfigStore } from "@/store/configurator";
 import { useView } from "@/components/view-context";
 import ViewAnimator from "@/components/view-animator";
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
-  root.traverse((o) => {
-    if (o.name === name) hit = o;
-  });
+  root.traverse((o) => { if (o.name === name) hit = o; });
   return hit;
 }
 
-/** copy only world position+rotation (ignore scale) */
+function isMesh(o: any): o is THREE.Mesh {
+  return !!o && o.isMesh === true;
+}
+
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -39,10 +40,8 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(headG);
   if (!isFinite(box.min.x) || box.isEmpty()) return;
-  const centerWorld = new THREE.Vector3();
-  box.getCenter(centerWorld);
-  const q = new THREE.Quaternion();
-  headG.getWorldQuaternion(q);
+  const centerWorld = new THREE.Vector3(); box.getCenter(centerWorld);
+  const q = new THREE.Quaternion(); headG.getWorldQuaternion(q);
   stoneG.position.copy(centerWorld);
   stoneG.quaternion.copy(q);
   stoneG.scale.set(1, 1, 1);
@@ -118,10 +117,10 @@ function SceneContent() {
   const controlsRef = useRef<any>(null);
   const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
 
-  const shankG = useRef<THREE.Group | null>(null);
-  const headG = useRef<THREE.Group | null>(null);
-  const stoneG = useRef<THREE.Group | null>(null);
   const ringGroup = useRef<THREE.Group | null>(null);
+  const shankG = useRef<THREE.Group | null>(null);
+  const headG  = useRef<THREE.Group | null>(null);
+  const stoneG = useRef<THREE.Group | null>(null);
 
   const { invalidate } = useThree();
   const { setControls, view360 } = useView();
@@ -131,21 +130,27 @@ function SceneContent() {
     return () => setControls(null);
   }, [setControls]);
 
-  const anchors = useMemo(
-    () => ({
-      shankA: findByName(refRoot, "ANCHOR_SHANK"),
-      headA: findByName(refRoot, "ANCHOR_HEAD"),
-      stoneA: findByName(refRoot, "ANCHOR_STONE"),
-      engraveA: findByName(refRoot, "Cylinder"), // ⟵ engraving anchor mesh
-    }),
-    [refRoot]
-  );
+  const anchors = useMemo(() => ({
+    shankA: findByName(refRoot, "ANCHOR_SHANK"),
+    headA:  findByName(refRoot, "ANCHOR_HEAD"),
+    stoneA: findByName(refRoot, "ANCHOR_STONE"),
+  }), [refRoot]);
+
+  const cylinderMesh = useMemo(() => {
+    let hit: THREE.Mesh | null = null;
+    refRoot.traverse((o) => {
+      if (!hit && isMesh(o) && o.name === "Cylinder") {
+        (o as THREE.Object3D).visible = false;
+        hit = o as THREE.Mesh;
+      }
+    });
+    return hit;
+  }, [refRoot]);
 
   const [layoutTick, setLayoutTick] = useState(0);
-
   useLayoutEffect(() => {
     if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
-    if (anchors.headA && headG.current) copyWorldPR(anchors.headA, headG.current);
+    if (anchors.headA  && headG.current)  copyWorldPR(anchors.headA,  headG.current);
 
     if (stoneG.current) {
       if (anchors.stoneA) {
@@ -161,12 +166,6 @@ function SceneContent() {
         });
       }
     }
-
-    if (anchors.engraveA) {
-      const m = anchors.engraveA as THREE.Mesh;
-      m.visible = false;
-    }
-
     setLayoutTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
@@ -178,22 +177,15 @@ function SceneContent() {
       <primitive object={refRoot} visible={false} />
 
       <group ref={ringGroup}>
-        <group ref={shankG}>
-          <ShankModel style={style as any} metal={metal as any} />
-        </group>
-        <group ref={headG}>
-          <HeadModel shape={shape as any} carat={carat} metal={metal as any} />
-        </group>
-        <group ref={stoneG}>
-          <StoneModel shape={shape as any} carat={carat} />
-        </group>
+        <group ref={shankG}><ShankModel style={style as any} metal={metal as any} /></group>
+        <group ref={headG}><HeadModel shape={shape as any} carat={carat} metal={metal as any} /></group>
+        <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
 
-        {/* Engraving only renders when there is text */}
-        {engravingText && (
+        {engravingText ? (
           <Suspense fallback={null}>
-            <EngravingModel anchor={anchors.engraveA as any} />
+            <EngravingModel sourceMesh={cylinderMesh ?? null} />
           </Suspense>
-        )}
+        ) : null}
       </group>
 
       <Environment files="/hdrs/metal3.hdr" background={false} />
