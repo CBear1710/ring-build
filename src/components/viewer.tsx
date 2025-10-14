@@ -177,15 +177,17 @@ function SceneContent() {
       <primitive object={refRoot} visible={false} />
 
       <group ref={ringGroup}>
-        <group ref={shankG}><ShankModel style={style as any} metal={metal as any} /></group>
-        <group ref={headG}><HeadModel shape={shape as any} carat={carat} metal={metal as any} /></group>
-        <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
+        <group ref={shankG}><ShankModel style={style as any} metal={metal as any} />
+        
 
         {engravingText ? (
           <Suspense fallback={null}>
             <EngravingModel sourceMesh={cylinderMesh ?? null} />
           </Suspense>
         ) : null}
+      </group>
+        <group ref={headG}><HeadModel shape={shape as any} carat={carat} metal={metal as any} /></group>
+        <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
       </group>
 
       <Environment files="/hdrs/metal3.hdr" background={false} />
