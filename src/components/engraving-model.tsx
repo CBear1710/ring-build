@@ -88,8 +88,8 @@ export default function EngravingModel({ sourceMesh }: Props) {
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, cw, ch);
 
-    ctx.shadowColor = "rgba(0,0,0,0.6)";
-    ctx.shadowBlur = 6 * TEXT_CANVAS_SCALE;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
@@ -101,8 +101,8 @@ export default function EngravingModel({ sourceMesh }: Props) {
     ctx.textBaseline = "middle";
 
     ctx.lineWidth = 2 * TEXT_CANVAS_SCALE;
-    ctx.strokeStyle = "rgba(0,0,0,0.9)";
-    ctx.fillStyle = "white";
+    ctx.strokeStyle = "transparent";
+    ctx.fillStyle = "#4D4D4D";
 
     const totalW = ctx.measureText(engravingText).width;
     let penX = (cw - totalW) / 2;
@@ -143,7 +143,7 @@ export default function EngravingModel({ sourceMesh }: Props) {
       <group position={[0, localYShift, 0]} rotation={ENGRAVING_ROTATION} scale={ENGRAVING_SCALE}>
         {SHOW_DEBUG_WIREFRAME && edges && (
           <lineSegments geometry={sourceMesh.geometry} renderOrder={998}>
-            <lineBasicMaterial color="#00ff88" depthTest={false} />
+            <lineBasicMaterial color="#ffffff" depthTest={false} />
           </lineSegments>
         )}
 
@@ -171,7 +171,7 @@ export default function EngravingModel({ sourceMesh }: Props) {
               roughness={0.9}
               side={THREE.BackSide}
               emissive={"#ffffff"}
-              emissiveIntensity={0.4}
+              emissiveIntensity={0.1}
               depthTest
               depthWrite={false}
               toneMapped
