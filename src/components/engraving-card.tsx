@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { useConfigStore } from "@/store/configurator";
 import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
 
+// 👇 derive the key type from the map itself (exact literal keys)
+type FontKey = keyof typeof FONT_FALLBACKS;
+
 const MAX = 15;
 
-const FONTS = [
+const FONTS: Array<{ key: FontKey; label: string; src: string; w: number; h: number }> = [
   { key: "regular", label: "Regular", src: "/fonts/regular.png", w: 60, h: 20 },
   { key: "script",  label: "Script",  src: "/fonts/script.png",  w: 60, h: 20 },
   { key: "italics", label: "Italics", src: "/fonts/italics.png", w: 60, h: 20 },
@@ -16,14 +19,14 @@ const FONTS = [
 ];
 
 export default function EngravingCard() {
-  const text = useConfigStore((s) => s.engravingText);
-  const font = useConfigStore((s) => s.engravingFont);
+  const text = useConfigStore((s) => s.engravingText ?? "");
+  const font = useConfigStore((s) => s.engravingFont as FontKey); // store holds lowercase keys
   const setText = useConfigStore((s) => s.setEngravingText);
-  const setFont = useConfigStore((s) => s.setEngravingFont);
+  const setFont = useConfigStore((s) => s.setEngravingFont as (f: FontKey) => void);
   const setFontUrl = useConfigStore((s) => s.setEngravingFontUrl);
 
   return (
-    <Card className="rounded-2xl shadow-sm mb-4"> 
+    <Card className="rounded-2xl shadow-sm mb-4">
       <CardHeader className="pb-2">
         <CardTitle className="text-[15px] tracking-wide">ADD ENGRAVING</CardTitle>
       </CardHeader>
@@ -58,8 +61,8 @@ export default function EngravingCard() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => {
-                    setFont(f.key as typeof font);
-                    setFontUrl(FONT_FALLBACKS[f.key as keyof typeof FONT_FALLBACKS]);
+                    setFont(f.key);                           
+                    setFontUrl(FONT_FALLBACKS[f.key]);        
                   }}
                   className={[
                     "flex items-center justify-center h-6 px-4 transition-colors",

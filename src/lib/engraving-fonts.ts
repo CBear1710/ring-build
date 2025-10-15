@@ -1,20 +1,31 @@
-import type { EngravingFont } from "@/store/configurator";
 
-const LOCAL_REGULAR = "/fonts/engrave-regular.woff2";
-const LOCAL_ITALIC  = "/fonts/engrave-italic.woff2";
+export const FONT_FALLBACKS = {
+  regular: "/fonts/engrave-regular.woff2",
+  italics: "/fonts/engrave-italic.woff2",
+  script:  "/fonts/engrave-regular.woff2",
+  roman:   "/fonts/engrave-regular.woff2",
+} as const;
 
-export const FONT_FALLBACKS: Record<EngravingFont, string> = {
-  regular: LOCAL_REGULAR,
-  italics: LOCAL_ITALIC,
-  script:  LOCAL_REGULAR,
-  roman:   LOCAL_REGULAR,
-};
+export type EngravingFont = keyof typeof FONT_FALLBACKS; 
+
+export function asEngravingFont(v: unknown): EngravingFont {
+  const k = String(v ?? "").toLowerCase();
+  return (Object.keys(FONT_FALLBACKS) as Array<EngravingFont>).includes(k as EngravingFont)
+    ? (k as EngravingFont)
+    : "regular";
+}
+
 
 async function urlExists(url: string, ms = 2500): Promise<boolean> {
+  if (typeof window === "undefined") return true;
+
   try {
     const ctrl = new AbortController();
     const id = setTimeout(() => ctrl.abort(), ms);
-    const abs = new URL(url, window.location.origin).toString();
+
+    const origin = window.location?.origin ?? "";
+    const abs = new URL(url, origin).toString();
+
     const res = await fetch(abs, { method: "HEAD", signal: ctrl.signal });
     clearTimeout(id);
     return res.ok;
@@ -25,12 +36,14 @@ async function urlExists(url: string, ms = 2500): Promise<boolean> {
 
 
 export async function resolveEngravingFontUrlAsync(
-  fontEnum: EngravingFont | undefined,
+  font: EngravingFont | string | undefined,
   overrideUrl?: string
 ): Promise<string> {
   if (overrideUrl && (await urlExists(overrideUrl))) return overrideUrl;
 
-  const fromEnum = FONT_FALLBACKS[fontEnum ?? "regular"] ?? LOCAL_REGULAR;
+  const key = asEngravingFont(font);
+  const fromEnum = FONT_FALLBACKS[key];
+
   if (await urlExists(fromEnum)) return fromEnum;
 
   return "__DEFAULT__";

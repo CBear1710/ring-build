@@ -2,11 +2,10 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useConfigStore } from "@/store/configurator";
-
-/* ---------------------------------- DATA --------------------------------- */
 
 const SHAPES = [
   { key: "round",    label: "Round",    src: "/stones/round.png" },
@@ -21,24 +20,66 @@ const SHAPES = [
   { key: "asscher",  label: "Asscher",  src: "/stones/asscher.png" },
 ] as const;
 
-const MIN  = 0.25;
-const MAX  = 5;
+const MIN = 0.25;
+const MAX = 5;
 const STEP = 0.25;
-const TICKS = [0.25, 1, 2, 3, 4, 5];
+const TICKS = [0.25, 1, 2, 3, 4, 5] as const;
 
-/** map a value in [MIN..MAX] to a % along the track */
-const pct = (v: number) => ((v - MIN) / (MAX - MIN)) * 100;
-
-/* -------------------------------- COMPONENT ------------------------------- */
+const frac = (v: number) => (v - MIN) / (MAX - MIN);
 
 export default function StoneCard() {
-  const shape     = useConfigStore((s) => s.shape);
-  const carat     = useConfigStore((s) => s.carat);
-  const setShape  = useConfigStore((s) => s.setShape);
-  const setCarat  = useConfigStore((s) => s.setCarat);
+  const shape = useConfigStore((s) => s.shape);
+  const carat = useConfigStore((s) => s.carat);
+  const setShape = useConfigStore((s) => s.setShape);
+  const setCarat = useConfigStore((s) => s.setCarat);
 
-  const activeLabel =
-    SHAPES.find((s) => s.key === shape)?.label ?? "";
+  const activeLabel = SHAPES.find((s) => s.key === shape)?.label ?? "";
+
+  const sliderRootRef = useRef<HTMLDivElement | null>(null);
+  const [trackLeft, setTrackLeft] = useState(0);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [trackHeight, setTrackHeight] = useState(0);
+
+  useEffect(() => {
+    if (!sliderRootRef.current) return;
+    const root = sliderRootRef.current;
+
+    const update = () => {
+      const track =
+        root.querySelector<HTMLElement>("[data-radix-slider-track]") ||
+        root.querySelector<HTMLElement>("[role='slider']") ||
+        root.querySelector<HTMLElement>("[data-orientation]");
+
+      if (track) {
+        setTrackLeft(track.offsetLeft);
+        setTrackWidth(track.clientWidth);
+        setTrackHeight(track.clientHeight);
+      } else {
+        setTrackLeft(0);
+        setTrackWidth(root.clientWidth);
+        setTrackHeight(0);
+      }
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(root);
+
+    const t1 = setTimeout(update, 0);
+    const t2 = setTimeout(update, 100);
+
+    return () => {
+      ro.disconnect();
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  const posPx = (f: number) => {
+    const r = trackHeight / 2; 
+    const inner = Math.max(0, trackWidth - 2 * r); 
+    return trackLeft + r + inner * f;
+  };
 
   return (
     <Card className="rounded-2xl shadow-sm">
@@ -85,12 +126,29 @@ export default function StoneCard() {
         <div className="mt-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[15px] font-semibold tracking-wide">CARAT</span>
-            <span className="text-sm text-muted-foreground">
-              {carat.toFixed(2)}
-            </span>
+            <span className="text-sm text-muted-foreground">{carat.toFixed(2)}</span>
           </div>
 
-          <div className="relative">
+          <div ref={sliderRootRef} className="relative">
+            <div className="relative mb-2 h-5">
+              <div className="absolute top-0 left-0 right-0">
+                {TICKS.map((v) => {
+                  const leftPx = posPx(frac(v));
+                  return (
+                    <span
+                      key={v}
+                      style={{ left: `${leftPx}px` }}
+                      className="absolute -translate-x-1/2 text-xs text-muted-foreground select-none pointer-events-none"
+                      aria-hidden
+                    >
+                      {Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2)}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Slider */}
             <Slider
               value={[carat]}
               min={MIN}
@@ -100,18 +158,6 @@ export default function StoneCard() {
               className="w-full"
               aria-label="Carat"
             />
-            <div className="relative h-5 mt-2">
-              {TICKS.map((v) => (
-                <span
-                  key={v}
-                  style={{ left: `${pct(v)}%` }}
-                  className="absolute -translate-x-1/2 text-xs text-muted-foreground select-none pointer-events-none"
-                  aria-hidden
-                >
-                  {Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2)}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       </CardContent>

@@ -153,8 +153,8 @@ export default function EngravingModel({ sourceMesh }: Props) {
               map={textTexture ?? undefined}
               transparent
               alphaTest={0.02}
-              side={THREE.BackSide}   // only inside faces
-              depthTest               // respect depth so metal occludes
+              side={THREE.BackSide}
+              depthTest               
               depthWrite={false}
               toneMapped={false}
               polygonOffset

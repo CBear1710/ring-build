@@ -3,6 +3,9 @@
 
 import { useMemo, useState } from "react";
 import { useConfigStore } from "@/store/configurator";
+import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
+
+type EngravingFont = keyof typeof FONT_FALLBACKS;
 
 type Props = { className?: string };
 
@@ -53,7 +56,8 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
-  const engravingFont = useConfigStore((s: any) => s.engravingFont ?? "Regular");
+  const engravingFont =
+    (useConfigStore((s) => s.engravingFont) as EngravingFont) ?? "regular";
 
   // Parse ring size
   const ringSizeNum =
@@ -68,7 +72,6 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   const [copied, setCopied] = useState(false);
 
-  // ---------- Share / Copy helpers ----------
   function buildShareUrl() {
     const params = new URLSearchParams({
       style: String(style ?? ""),
@@ -78,7 +81,7 @@ export default function SummaryPanel({ className = "" }: Props) {
       shape: String(shape ?? ""),
       carat: String(carat ?? ""),
       engraving: String(engravingText ?? ""),
-      engravingFont: String(engravingFont ?? ""),
+      engravingFont, // lowercase union key
     });
     const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
@@ -140,23 +143,23 @@ export default function SummaryPanel({ className = "" }: Props) {
     e.preventDefault();
     e.stopPropagation();
     const { shareUrl, fbUrl } = buildShareUrl();
-    const ok = await copyToClipboard(shareUrl); // copy silently
+    const ok = await copyToClipboard(shareUrl);
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(false), 1200);
     openCenteredPopup(fbUrl, "fbshare");
   }
-  // -----------------------------------------
 
   const showEngraving = (engravingText ?? "").trim().length > 0;
 
   const rows = useMemo(() => {
-    // PERSONALIZE group — build items dynamically
     const personalizeItems: Array<{ k: string; v: any }> = [];
 
     if (showEngraving) {
+      const pretty =
+        engravingFont.charAt(0).toUpperCase() + engravingFont.slice(1);
       personalizeItems.push(
         { k: "engraving", v: engravingText },
-        { k: "engravingFont", v: engravingFont }
+        { k: "engravingFont", v: pretty }
       );
     }
 
@@ -228,13 +231,24 @@ export default function SummaryPanel({ className = "" }: Props) {
               {items.map(({ k, v }) => (
                 <div
                   key={k}
-                  className="flex items-start justify-between gap-3"
+                  // ⬇️ grid lets the value column shrink properly
+                  className="grid grid-cols-[auto,1fr] items-start gap-x-3"
                 >
                   <dt className="text-xs sm:text-sm text-black">
                     {labelMap[k] ?? titleCase(k)}
                   </dt>
-                  <dd className="text-xs sm:text-sm font-medium text-black text-right break-words">
-                    {v || "—"}
+
+                  <dd
+                    className={[
+                      "text-xs sm:text-sm font-medium text-black",
+                      "justify-self-end text-right",
+                      // ⬇️ allow shrink + ellipsis for long, unbroken engravings
+                      "min-w-0 max-w-full overflow-hidden whitespace-nowrap text-ellipsis",
+                    ].join(" ")}
+                    // show full text on hover when it's a string
+                    title={typeof v === "string" ? v : undefined}
+                  >
+                    {k === "engraving" ? String(v) : v || "—"}
                   </dd>
                 </div>
               ))}
@@ -243,14 +257,12 @@ export default function SummaryPanel({ className = "" }: Props) {
         ))}
       </div>
 
-      {/* Actions */}
       <div className="mt-4 flex justify-center gap-2">
         <button
           type="button"
           onClick={copyLink}
           className="inline-flex items-center gap-2 rounded-lg border border-black/10 px-4 py-2 text-sm hover:bg-black/5 active:scale-[0.98] transition"
         >
-          {/* Copy icon */}
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path
               d="M3 8a5 5 0 0 1 5-5h3v2H8a3 3 0 1 0 0 6h3v2H8A5 5 0 0 1 3 8Zm8 5h5a5 5 0 1 1 0 10h-5v-2h5a3 3 0 1 0 0-6h-5v-2Zm6-9a3 3 0 0 1 0 6h-5V8h5a1 1 0 0 0 0-2h-5V4h5Z"
@@ -266,7 +278,6 @@ export default function SummaryPanel({ className = "" }: Props) {
           className="inline-flex items-center gap-2 rounded-lg border border-[#1877F2]/20 px-4 py-2 text-sm text-[#1877F2] hover:bg-[#1877F2]/10 active:scale-[0.98] transition"
           title="Share on Facebook"
         >
-          {/* FB icon */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2" aria-hidden>
             <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.7V12h2.7V9.8c0-2.7 1.6-4.2 4-4.2 1.2 0 2.5.2 2.5.2v2.7h-1.4c-1.4 0-1.9.9-1.9 1.8V12h3.2l-.5 2.9h-2.7v7A10 10 0 0 0 22 12z"/>
           </svg>

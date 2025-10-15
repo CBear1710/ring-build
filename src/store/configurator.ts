@@ -4,24 +4,53 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
+import type { EngravingFont } from "@/lib/engraving-fonts";
+import { asEngravingFont } from "@/lib/engraving-fonts";
+
 export type Tab = "setting" | "stone" | "shank";
 
 export type Style =
-  | "plain" | "cathedral" | "knife" | "split" | "twisted" | "wide_plain";
+  | "plain"
+  | "cathedral"
+  | "knife"
+  | "split"
+  | "twisted"
+  | "wide_plain";
+
 export type Metal = "white" | "yellow" | "rose" | "platinum";
 
 export type Purity = "9k" | "14k" | "18k" | null;
 
 export type Shape =
-  | "round" | "princess" | "cushion" | "oval" | "radiant"
-  | "pear" | "emerald" | "marquise" | "heart" | "asscher";
+  | "round"
+  | "princess"
+  | "cushion"
+  | "oval"
+  | "radiant"
+  | "pear"
+  | "emerald"
+  | "marquise"
+  | "heart"
+  | "asscher";
 
-export type EngravingFont = "regular" | "script" | "italics" | "roman";
 export type EngravingSide = "inner" | "outer";
+
+type EngravingControls = {
+  engravingEnabled: boolean;
+  engravingText: string;
+  engravingFont: EngravingFont;
+  engravingFontUrl?: string;
+  engravingSize: number;
+  engravingLetterSpacing: number;
+  engravingColor: string;
+  engravingOpacity: number; 
+  engravingSide: EngravingSide;
+  engravingOffsetX: number; 
+};
 
 export type ConfigState = {
   // core
-  resetKeepTab: any;
+  resetKeepTab: () => void;
   tab: Tab;
   style: Style;
   metal: Metal;
@@ -31,36 +60,29 @@ export type ConfigState = {
   shape: Shape;
   carat: number;
 
-  // engraving (existing)
-  engravingText: string;
-  engravingFont: EngravingFont;
-
-  // ring sizing
+  // sizing
   ringSize: number;
 
-  // engraving (new controls)
-  engravingEnabled: boolean;
-  engravingFontUrl?: string;          // optional: overrides enum mapping if provided
-  engravingSize: number;              // visual size control (mm-like)
-  engravingLetterSpacing: number;     // 0..0.1 typical
-  engravingColor: string;             // hex
-  engravingOpacity: number;           // 0..1
-  engravingSide: EngravingSide;       // inner/outer
-  engravingOffsetX: number;           // radians along arc (start angle)
-
+  // engraving
+} & EngravingControls & {
   // setters
   setTab: (t: Tab) => void;
   setStyle: (s: Style) => void;
   setMetal: (m: Metal) => void;
   setPurity: (p: Purity) => void;
+
   setShape: (s: Shape) => void;
   setCarat: (c: number) => void;
 
-  setEngravingText: (t: string) => void;
-  setEngravingFont: (f: EngravingFont) => void;
   setRingSize: (v: number) => void;
 
   setEngravingEnabled: (v: boolean) => void;
+  setEngravingText: (t: string) => void;
+
+  setEngravingFont: (f: EngravingFont) => void;
+
+  setEngravingFontFromAny: (f: string | undefined | null) => void;
+
   setEngravingFontUrl: (v?: string) => void;
   setEngravingSize: (v: number) => void;
   setEngravingLetterSpacing: (v: number) => void;
@@ -70,49 +92,35 @@ export type ConfigState = {
   setEngravingOffsetX: (v: number) => void;
 
   // batch helper for engraving controls
-  setEngraving: (patch: Partial<Pick<
-    ConfigState,
-    | "engravingEnabled" | "engravingText" | "engravingFont" | "engravingFontUrl"
-    | "engravingSize" | "engravingLetterSpacing" | "engravingColor"
-    | "engravingOpacity" | "engravingSide" | "engravingOffsetX"
-  >>) => void;
+  setEngraving: (patch: Partial<EngravingControls>) => void;
 
   reset: () => void;
 };
 
+// ------- Defaults (typed, narrow, no 'any') -------
 export const DEFAULTS = {
-  tab: "setting" as Tab,
-  style: "plain" as Style,
-  metal: "white" as Metal,
-  purity: "9k" as Purity,
+  tab: "setting" as const,
+  style: "plain" as const,
+  metal: "white" as const,
+  purity: "9k" as const,
 
-  shape: "round" as Shape,
+  shape: "round" as const,
   carat: 0.5,
-
-  engravingText: "",
-  engravingFont: "regular" as EngravingFont,
 
   ringSize: 2,
 
-  // engraving (new defaults)
+  // engraving defaults
   engravingEnabled: false,
-  engravingFontUrl: undefined,  // use enum -> font map in component if undefined
+  engravingText: "",
+  engravingFont: "regular" as EngravingFont, 
+  engravingFontUrl: undefined, 
   engravingSize: 1.6,
   engravingLetterSpacing: 0.02,
   engravingColor: "#222222",
   engravingOpacity: 1,
-  engravingSide: "inner" as EngravingSide,
+  engravingSide: "inner" as const,
   engravingOffsetX: 0,
-} satisfies Pick<
-  ConfigState,
-  | "tab" | "style" | "metal" | "purity"
-  | "shape" | "carat"
-  | "engravingText" | "engravingFont"
-  | "ringSize"
-  | "engravingEnabled" | "engravingFontUrl" | "engravingSize"
-  | "engravingLetterSpacing" | "engravingColor" | "engravingOpacity"
-  | "engravingSide" | "engravingOffsetX"
->;
+} satisfies Omit<ConfigState, keyof ConfigState & string>; 
 
 export const useConfigStore = create<ConfigState>()(
   subscribeWithSelector((set, get) => ({
@@ -123,8 +131,9 @@ export const useConfigStore = create<ConfigState>()(
     setStyle: (style) => set({ style }),
 
     setMetal: (metal) => {
-      if (metal === "platinum") set({ metal, purity: null });
-      else {
+      if (metal === "platinum") {
+        set({ metal, purity: null });
+      } else {
         const purity = get().purity ?? DEFAULTS.purity;
         set({ metal, purity });
       }
@@ -136,15 +145,20 @@ export const useConfigStore = create<ConfigState>()(
     setShape: (shape) => set({ shape }),
     setCarat: (carat) => set({ carat }),
 
-    // engraving (existing)
-    setEngravingText: (engravingText) => set({ engravingText }),
-    setEngravingFont: (engravingFont) => set({ engravingFont }),
-
     // sizing
     setRingSize: (ringSize) => set({ ringSize }),
 
-    // engraving (new)
+    // engraving
     setEngravingEnabled: (v) => set({ engravingEnabled: v }),
+    setEngravingText: (engravingText) => set({ engravingText }),
+
+    // Strict: components should pass only the union
+    setEngravingFont: (engravingFont) => set({ engravingFont }),
+
+    // Hydration-safe: accepts any string & normalizes to the union
+    setEngravingFontFromAny: (value) =>
+      set({ engravingFont: asEngravingFont(value) }),
+
     setEngravingFontUrl: (v) => set({ engravingFontUrl: v }),
     setEngravingSize: (v) => set({ engravingSize: v }),
     setEngravingLetterSpacing: (v) => set({ engravingLetterSpacing: v }),
@@ -153,7 +167,7 @@ export const useConfigStore = create<ConfigState>()(
     setEngravingSide: (v) => set({ engravingSide: v }),
     setEngravingOffsetX: (v) => set({ engravingOffsetX: v }),
 
-    setEngraving: (patch) => set(() => ({ ...patch })),
+    setEngraving: (patch) => set(patch),
 
     // resets
     reset: () => set({ ...DEFAULTS }),
