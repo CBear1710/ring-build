@@ -1,55 +1,113 @@
+// components/ui/url-sync.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryStates } from "nuqs";
+import { useSearchParams } from "next/navigation";
 import { useConfigStore } from "@/store/configurator";
-import { styleParser, metalParser, purityParser, tabParser, shapeParser, caratParser, engravingTextParser, engravingFontParser, ringSizeParser, } from "@/lib/query-parsers";
-
+import {
+  styleParser,
+  metalParser,
+  purityParser,
+  tabParser,
+  shapeParser,
+  caratParser,
+  engravingTextParser,
+  engravingFontParser,
+  ringSizeParser,
+} from "@/lib/query-parsers";
 
 export default function UrlSync() {
-  // nuqs gives current query values and  setter for multiple keys
   const [qs, setQs] = useQueryStates({
     tab: tabParser,
     style: styleParser,
     metal: metalParser,
-    purity: purityParser, // can be null
+    purity: purityParser,
     shape: shapeParser,
     carat: caratParser,
-    engraving: engravingTextParser,    
-    font: engravingFontParser,         
+    engraving: engravingTextParser,
+    font: engravingFontParser,
     size: ringSizeParser,
   });
 
-  //  URL -> Store 
+  const raw = useSearchParams();
+
+  const {
+    setTab,
+    setStyle,
+    setMetal,
+    setPurity,
+    setShape,
+    setCarat,
+    setEngravingText,
+    setEngravingFont,
+    setRingSize,
+  } = useConfigStore.getState();
+
+  const hydrated = useRef(false);
+
   useEffect(() => {
-    const { setTab, setStyle, setMetal, setPurity, setShape, setCarat, setEngravingText, setEngravingFont, setRingSize } = useConfigStore.getState();
+    const s = useConfigStore.getState();
 
-    // guard to avoid loop
-    if (qs.tab && qs.tab !== useConfigStore.getState().tab) setTab(qs.tab);
-    if (qs.style && qs.style !== useConfigStore.getState().style) setStyle(qs.style);
-    if (qs.metal && qs.metal !== useConfigStore.getState().metal) setMetal(qs.metal);
+    if (qs.tab && qs.tab !== s.tab) setTab(qs.tab);
+    if (qs.style && qs.style !== s.style) setStyle(qs.style);
+    if (qs.metal && qs.metal !== s.metal) setMetal(qs.metal);
     if (qs.shape) setShape(qs.shape);
-    if (qs.carat !== undefined) setCarat(qs.carat);
-    
-    if (qs.purity !== undefined && qs.purity !== useConfigStore.getState().purity) {
-      setPurity(qs.purity);
-    
-    }
-    if (qs.engraving !== undefined) setEngravingText(qs.engraving);
-    if (qs.font) setEngravingFont(qs.font);
-    if (qs.size !== undefined) setRingSize(qs.size);
-  }, [qs]);
 
-  //  Store -> URL 
+    if (qs.carat != null) setCarat(qs.carat);
+    if (qs.size != null) setRingSize(qs.size);
+
+    if (qs.purity !== undefined && qs.purity !== s.purity) setPurity(qs.purity);
+    if (qs.engraving !== undefined) setEngravingText(qs.engraving);
+    if (qs.font != null) setEngravingFont(qs.font);
+
+    if (qs.size == null) {
+      const altSize = raw.get("ringSize");
+      if (altSize != null) {
+        const parsed = ringSizeParser.parse(altSize);
+        if (parsed != null) setRingSize(parsed);
+      }
+    }
+
+    if (qs.font == null) {
+      const altFont = raw.get("engravingFont");
+      if (altFont != null) {
+        const parsed = engravingFontParser.parse(altFont);
+        if (parsed != null) setEngravingFont(parsed);
+      }
+    }
+
+    if (!hydrated.current) hydrated.current = true;
+  }, [qs, raw, setCarat, setEngravingFont, setEngravingText, setMetal, setPurity, setRingSize, setShape, setStyle, setTab]);
+
   useEffect(() => {
     const unsub = useConfigStore.subscribe(
-      (s) => ({ tab: s.tab, style: s.style, metal: s.metal, purity: s.purity, shape: s.shape, carat: s.carat, engraving: s.engravingText, font: s.engravingFont, size: s.ringSize, }),
+      (s) => ({
+        tab: s.tab,
+        style: s.style,
+        metal: s.metal,
+        purity: s.purity,
+        shape: s.shape,
+        carat: s.carat,
+        engraving: s.engravingText,
+        font: s.engravingFont,
+        size: s.ringSize,
+      }),
       (state) => {
+        if (!hydrated.current) return;
         setQs(state, { shallow: true, history: "replace" });
       },
-      { equalityFn: (a, b) =>
-          a.tab === b.tab && a.style === b.style && a.metal === b.metal && a.purity === b.purity && a.shape === b.shape && a.carat === b.carat && a.engraving === b.engraving && a.font === b.font && a.size === b.size
-
+      {
+        equalityFn: (a, b) =>
+          a.tab === b.tab &&
+          a.style === b.style &&
+          a.metal === b.metal &&
+          a.purity === b.purity &&
+          a.shape === b.shape &&
+          a.carat === b.carat &&
+          a.engraving === b.engraving &&
+          a.font === b.font &&
+          a.size === b.size,
       }
     );
     return () => unsub();

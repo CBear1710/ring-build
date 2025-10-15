@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useConfigStore } from "@/store/configurator";
 import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
 
-// 👇 derive the key type from the map itself (exact literal keys)
 type FontKey = keyof typeof FONT_FALLBACKS;
 
 const MAX = 15;
@@ -20,7 +19,7 @@ const FONTS: Array<{ key: FontKey; label: string; src: string; w: number; h: num
 
 export default function EngravingCard() {
   const text = useConfigStore((s) => s.engravingText ?? "");
-  const font = useConfigStore((s) => s.engravingFont as FontKey); // store holds lowercase keys
+  const font = useConfigStore((s) => s.engravingFont as FontKey); 
   const setText = useConfigStore((s) => s.setEngravingText);
   const setFont = useConfigStore((s) => s.setEngravingFont as (f: FontKey) => void);
   const setFontUrl = useConfigStore((s) => s.setEngravingFontUrl);

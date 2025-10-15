@@ -3,11 +3,22 @@
 
 import { useMemo, useState } from "react";
 import { useConfigStore } from "@/store/configurator";
-import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
-
-type EngravingFont = keyof typeof FONT_FALLBACKS;
 
 type Props = { className?: string };
+
+// canonical engraving font keys we support
+const FONT_KEYS = ["regular", "script", "italics", "roman"] as const;
+type EngravingFontKey = (typeof FONT_KEYS)[number];
+
+function asFontKey(x: unknown): EngravingFontKey {
+  const s = String(x ?? "").toLowerCase();
+  return (FONT_KEYS as readonly string[]).includes(s) ? (s as EngravingFontKey) : "regular";
+}
+
+function prettyFontLabel(k: EngravingFontKey) {
+  // Only "italics" needs special-casing for capitalization
+  return k === "italics" ? "Italics" : k.charAt(0).toUpperCase() + k.slice(1);
+}
 
 const labelMap: Record<string, string> = {
   style: "Style",
@@ -56,8 +67,9 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
-  const engravingFont =
-    (useConfigStore((s) => s.engravingFont) as EngravingFont) ?? "regular";
+  const engravingFontRaw = useConfigStore((s: any) => s.engravingFont ?? "regular");
+  const engravingFontKey = asFontKey(engravingFontRaw);      // for URL / logic
+  const engravingFontLabel = prettyFontLabel(engravingFontKey); // for UI
 
   // Parse ring size
   const ringSizeNum =
@@ -72,16 +84,17 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   const [copied, setCopied] = useState(false);
 
+  // ---------- Share / Copy helpers ----------
   function buildShareUrl() {
     const params = new URLSearchParams({
       style: String(style ?? ""),
       metal: String(metal ?? ""),
       purity: purity != null ? String(purity) : "",
-      ringSize: ringSizeNum != null ? String(ringSizeNum) : "",
+      size: ringSizeNum != null ? String(ringSizeNum) : "",  // canonical
       shape: String(shape ?? ""),
       carat: String(carat ?? ""),
       engraving: String(engravingText ?? ""),
-      engravingFont, // lowercase union key
+      font: engravingFontKey,                                 // canonical, normalized
     });
     const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
@@ -115,13 +128,9 @@ export default function SummaryPanel({ className = "" }: Props) {
     const dualScreenLeft = window.screenLeft ?? window.screenX ?? 0;
     const dualScreenTop = window.screenTop ?? window.screenY ?? 0;
     const width =
-      window.innerWidth ??
-      document.documentElement.clientWidth ??
-      screen.width;
+      window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
     const height =
-      window.innerHeight ??
-      document.documentElement.clientHeight ??
-      screen.height;
+      window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
     const left = dualScreenLeft + (width - w) / 2;
     const top = dualScreenTop + (height - h) / 2;
     const features =
@@ -148,6 +157,7 @@ export default function SummaryPanel({ className = "" }: Props) {
     if (ok) setTimeout(() => setCopied(false), 1200);
     openCenteredPopup(fbUrl, "fbshare");
   }
+  // -----------------------------------------
 
   const showEngraving = (engravingText ?? "").trim().length > 0;
 
@@ -155,11 +165,9 @@ export default function SummaryPanel({ className = "" }: Props) {
     const personalizeItems: Array<{ k: string; v: any }> = [];
 
     if (showEngraving) {
-      const pretty =
-        engravingFont.charAt(0).toUpperCase() + engravingFont.slice(1);
       personalizeItems.push(
         { k: "engraving", v: engravingText },
-        { k: "engravingFont", v: pretty }
+        { k: "engravingFont", v: engravingFontLabel }
       );
     }
 
@@ -205,7 +213,7 @@ export default function SummaryPanel({ className = "" }: Props) {
     shape,
     carat,
     engravingText,
-    engravingFont,
+    engravingFontLabel,
     ringSizeNum,
     ringSizeMM,
     showEngraving,
@@ -228,30 +236,40 @@ export default function SummaryPanel({ className = "" }: Props) {
               {group}
             </div>
             <dl className="space-y-1 sm:space-y-1.5">
-              {items.map(({ k, v }) => (
-                <div
-                  key={k}
-                  // ⬇️ grid lets the value column shrink properly
-                  className="grid grid-cols-[auto,1fr] items-start gap-x-3"
-                >
-                  <dt className="text-xs sm:text-sm text-black">
-                    {labelMap[k] ?? titleCase(k)}
-                  </dt>
+              {items.map(({ k, v }) => {
+                if (k === "engraving") {
+                  return (
+                    <div key={k} className="w-full">
+                      <div className="flex items-start justify-between gap-3">
+                        <dt className="text-xs sm:text-sm text-black">
+                          {labelMap[k] ?? titleCase(k)}
+                        </dt>
+                        <div className="text-xs sm:text-sm font-medium opacity-0">—</div>
+                      </div>
+                      <dd
+                        className={[
+                          "mt-0.5 text-xs sm:text-sm font-medium text-black",
+                          "text-right whitespace-normal break-all",
+                        ].join(" ")}
+                        title={typeof v === "string" ? v : undefined}
+                      >
+                        {String(v)}
+                      </dd>
+                    </div>
+                  );
+                }
 
-                  <dd
-                    className={[
-                      "text-xs sm:text-sm font-medium text-black",
-                      "justify-self-end text-right",
-                      // ⬇️ allow shrink + ellipsis for long, unbroken engravings
-                      "min-w-0 max-w-full overflow-hidden whitespace-nowrap text-ellipsis",
-                    ].join(" ")}
-                    // show full text on hover when it's a string
-                    title={typeof v === "string" ? v : undefined}
-                  >
-                    {k === "engraving" ? String(v) : v || "—"}
-                  </dd>
-                </div>
-              ))}
+                return (
+                  <div key={k} className="flex items-start justify-between gap-3">
+                    <dt className="text-xs sm:text-sm text-black">
+                      {labelMap[k] ?? titleCase(k)}
+                    </dt>
+                    <dd className="text-xs sm:text-sm font-medium text-black text-right overflow-hidden whitespace-nowrap text-ellipsis">
+                      {v || "—"}
+                    </dd>
+                  </div>
+                );
+              })}
             </dl>
           </section>
         ))}
