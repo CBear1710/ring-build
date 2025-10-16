@@ -80,8 +80,8 @@ function useAutoFrame(
 
     const newTarget = sphere.center.clone();
 
-    persp.near = Math.max(0.01, dist / 100);
-    persp.far = dist * 10;
+    persp.near = Math.max(0.01, dist / 200);
+    persp.far = Math.max(persp.near + 1, dist * 20);
 
     if (view360) {
       const oldTarget = controls.target ? controls.target.clone() : new THREE.Vector3();
@@ -89,17 +89,16 @@ function useAutoFrame(
       camera.position.add(delta);
       controls.target.copy(newTarget);
     } else {
-      const dir = camera.position
-        .clone()
-        .sub(controls.target || new THREE.Vector3())
-        .normalize();
+      const dir = camera.position.clone().sub(newTarget).normalize();
       const newPos = newTarget.clone().add(dir.multiplyScalar(dist));
       camera.position.copy(newPos);
       controls.target.copy(newTarget);
-      controls.minDistance = dist * 0.7;
-      controls.maxDistance = dist * 1.2;
+
+      controls.minDistance = dist * 0.9;
+      controls.maxDistance = dist * 1.4;
     }
 
+    camera.lookAt(newTarget);
     persp.updateProjectionMatrix();
     controls.update?.();
     invalidate();
@@ -166,6 +165,12 @@ function SceneContent() {
         });
       }
     }
+
+    requestAnimationFrame(() => {
+      (controlsRef.current as any)?.update?.();
+      invalidate();
+    });
+
     setLayoutTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
@@ -177,17 +182,23 @@ function SceneContent() {
       <primitive object={refRoot} visible={false} />
 
       <group ref={ringGroup}>
-        <group ref={shankG}><ShankModel style={style as any} metal={metal as any} />
-        
+        <group ref={shankG}>
+          <ShankModel style={style as any} metal={metal as any} />
 
-        {engravingText ? (
-          <Suspense fallback={null}>
-            <EngravingModel sourceMesh={cylinderMesh ?? null} />
-          </Suspense>
-        ) : null}
-      </group>
-        <group ref={headG}><HeadModel shape={shape as any} carat={carat} metal={metal as any} /></group>
-        <group ref={stoneG}><StoneModel shape={shape as any} carat={carat} /></group>
+          {engravingText ? (
+            <Suspense fallback={null}>
+              <EngravingModel sourceMesh={cylinderMesh ?? null} />
+            </Suspense>
+          ) : null}
+        </group>
+
+        <group ref={headG}>
+          <HeadModel shape={shape as any} carat={carat} metal={metal as any} />
+        </group>
+
+        <group ref={stoneG}>
+          <StoneModel shape={shape as any} carat={carat} />
+        </group>
       </group>
 
       <Environment files="/hdrs/metal3.hdr" background={false} />
@@ -215,7 +226,7 @@ export default function ThreeViewer() {
         shadows
         frameloop="demand"
         dpr={[1, 2]}
-        camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.01, far: 50 }}
+        camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 50 }}
         gl={{
           antialias: true,
           powerPreference: "high-performance",

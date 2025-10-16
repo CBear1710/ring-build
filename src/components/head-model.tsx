@@ -41,23 +41,42 @@ const HEAD_TO_SRC: Record<ShapeKey, string> = {
   asscher: "/models/ASSCHER.glb",
 };
 
+
+const STONE_BASE_XZ_MIN: Record<ShapeKey, number> = {
+  round: 2.40,
+  princess: 1.60,
+  cushion: 1.80,
+  oval: 1.50,
+  radiant: 1.55,
+  pear: 1.15,
+  emerald: 1.10,
+  marquise: 1.30,
+  heart: 1.10,
+  asscher: 1.25,
+};
+
+const CARAT_STEP_SIZE = 0.25;
+const CARAT_MIN = 0.25;
+const STONE_STEP_GAIN = 0.015; 
+
+const HEAD_GROW_RATIO = 0.95; 
+const HEAD_CLEARANCE = 0.04;  
+
+const SEAT_ALPHA = -1.3;
+const HEAD_BASE_SCALE_XZ = 1.1;
+const HEAD_BASE_SCALE_Y = 1.0;
+
 const METAL_TINT: Record<
   Metal,
-  {
-    color: [number, number, number];
-    metalness: number;
-    roughness: number;
-    envMapIntensity: number;
-  }
+  { color: [number, number, number]; metalness: number; roughness: number; envMapIntensity: number }
 > = {
-  white:    { color: [0.93, 0.95, 1.00], metalness: 1.0, roughness: 0.06, envMapIntensity: 1.35 },
-  yellow:   { color: [0.83, 0.66, 0.22], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.50 },
-  rose:     { color: [0.82, 0.54, 0.50], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.45 },
+  white: { color: [0.93, 0.95, 1.0], metalness: 1.0, roughness: 0.06, envMapIntensity: 1.35 },
+  yellow: { color: [0.83, 0.66, 0.22], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.50 },
+  rose: { color: [0.82, 0.54, 0.50], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.45 },
   platinum: { color: [0.90, 0.92, 0.95], metalness: 1.0, roughness: 0.05, envMapIntensity: 1.40 },
 };
 
 type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
-
 function tintMetal(root: Object3D, metal: Metal) {
   const { color, roughness, metalness, envMapIntensity } = METAL_TINT[metal];
   root.traverse((o) => {
@@ -75,26 +94,15 @@ function tintMetal(root: Object3D, metal: Metal) {
   });
 }
 
-
-const CARAT_STEP_SIZE = 0.25;
-const CARAT_MIN = 0.25;
-const STEP_GAIN = 0.03; 
-
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
   return Math.max(CARAT_MIN, Number(q.toFixed(2)));
 }
-
-function gainFromCaratDiscrete(carat: number) {
+function stoneGainFromCarat(carat: number) {
   const q = quantizeCarat(carat);
   const stepsFrom1 = Math.round((q - 1.0) / CARAT_STEP_SIZE);
-  return stepsFrom1 * STEP_GAIN;
+  return stepsFrom1 * STONE_STEP_GAIN;
 }
-
-
-const SEAT_ALPHA = -1.3;        
-const HEAD_BASE_SCALE_XZ = 1.1; 
-const HEAD_BASE_SCALE_Y  = 1.0; 
 
 const SEAT_BAND_FRAC = 0.2;
 
@@ -123,7 +131,6 @@ function normalizeHeadToSeat_slice(child: Object3D) {
   if (!isFinite(bbox.min.x) || bbox.isEmpty()) return;
 
   const h = bbox.max.y - bbox.min.y;
-
   const seatY_raw = bbox.min.y + SEAT_ALPHA * h;
 
   const yForSlice = THREE.MathUtils.clamp(seatY_raw, bbox.min.y, bbox.max.y);
@@ -131,12 +138,7 @@ function normalizeHeadToSeat_slice(child: Object3D) {
   const yMin = yForSlice - band * 0.5;
   const yMax = yForSlice + band * 0.5;
 
-  let minX = Infinity,
-    maxX = -Infinity,
-    minZ = Infinity,
-    maxZ = -Infinity,
-    found = false;
-
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, found = false;
   const v = new THREE.Vector3();
 
   child.traverse((o) => {
@@ -197,6 +199,17 @@ export default function HeadModel({
 
   const baseYScaleRef = useRef<number>(1);
 
+  const computeHeadXZ = (shapeKey: ShapeKey, caratVal: number) => {
+    const rStone = stoneGainFromCarat(caratVal);         
+    const rHead  = rStone * HEAD_GROW_RATIO;             
+    const xzUnclamped = HEAD_BASE_SCALE_XZ + rHead;
+
+    const stoneBase = STONE_BASE_XZ_MIN[shapeKey];       
+    const maxAllowed = stoneBase + rStone - HEAD_CLEARANCE;
+
+    return Math.max(0.001, Math.min(xzUnclamped, maxAllowed));
+  };
+
   useEffect(() => {
     if (!wrapper.current) return;
 
@@ -209,7 +222,6 @@ export default function HeadModel({
     wrapper.current.add(child);
     childRef.current = child;
 
-    // Shadows
     child.traverse((o) => {
       const mesh = o as Mesh;
       if (mesh.isMesh) {
@@ -228,12 +240,11 @@ export default function HeadModel({
 
     tintMetal(child, metal);
 
-    const r = gainFromCaratDiscrete(carat);
-    const xz = HEAD_BASE_SCALE_XZ + r;
-    const y  = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
+    const xz = computeHeadXZ(shape, carat);
+    const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
-  }, [scene, url, shape]);
+  }, [scene, url, shape]); 
 
   useEffect(() => {
     if (!childRef.current) return;
@@ -243,12 +254,11 @@ export default function HeadModel({
   useEffect(() => {
     const child = childRef.current;
     if (!child) return;
-    const r = gainFromCaratDiscrete(carat);
-    const xz = HEAD_BASE_SCALE_XZ + r;
-    const y  = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
+    const xz = computeHeadXZ(shape, carat);
+    const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
-  }, [carat]);
+  }, [carat, shape]);
 
   return <group ref={wrapper} />;
 }

@@ -31,10 +31,10 @@ const TEMPLATE_BASE: Record<
   round:    { base: [2.40, 2.40, 2.40], pos: [0, 0.80, 0] },
   princess: { base: [1.03, 1.03, 1.00], pos: [0, 0.80, 0] },
   cushion:  { base: [0.90, 1.05, 0.90], pos: [0, 0.80, 0] },
-  oval:     { base: [0.85, 1.05, 1.10], pos: [0, 1.00, 0] },
-  radiant:  { base: [1.75, 1.85, 1.80], pos: [0, 0.80, 0] },
-  pear:     { base: [0.95, 0.85, 1.00], pos: [0, 1.05, -0.6] },
-  emerald:  { base: [1.05, 0.95, 1.00], pos: [0, 0.80, 0] },
+  oval:     { base: [0.90, 1.20, 1.15], pos: [0, 1.00, 0] },
+  radiant:  { base: [1.75, 1.95, 1.90], pos: [-0.1, 0.80, 0] },
+  pear:     { base: [0.95, 0.85, 1.00], pos: [0, 1.05, -0.9] },
+  emerald:  { base: [1.05, 0.95, 1.10], pos: [0, 0.80, 0] },
   marquise: { base: [1.05, 1.05, 0.90], pos: [0, 1.10, 0] },
   heart:    { base: [0.75, 0.95, 0.70], pos: [0, 1.20, -0.6] },
   asscher:  { base: [0.83, 0.83, 0.90], pos: [0, 0.80, 0] },
@@ -43,7 +43,7 @@ const TEMPLATE_BASE: Record<
 
 const CARAT_STEP_SIZE = 0.25;
 const CARAT_MIN = 0.25;
-const STEP_GAIN = 0.02; 
+const STEP_GAIN = 0.017; 
 
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
@@ -164,7 +164,7 @@ export default function StoneModel({
               <MeshRefractionMaterial
                 envMap={envTex}
                 ior={2.44}
-                bounces={5}
+                bounces={4}
                 aberrationStrength={0.01}
                 fresnel={0.05}
                 color="#d9e7ff"
