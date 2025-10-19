@@ -79,22 +79,30 @@ function useAutoFrame(
     const radiusFit = Math.max(1e-4, sphere.radius) * padding;
     const distV = radiusFit / Math.tan(vFov / 2);
     const distH = radiusFit / Math.tan(hFov / 2);
-    const distFit = Math.max(distV, distH);
+    const fitDist = Math.max(distV, distH);
 
     const newTarget = sphere.center.clone();
 
-    const dir = camera.position.clone().sub(newTarget).normalize();
-    const newPos = newTarget.clone().add(dir.multiplyScalar(distFit));
+    const currentTarget = controls.target.clone();
+    const curRadius = camera.position.distanceTo(currentTarget);
+    const rawKeep = isFinite(curRadius) && curRadius > 0 ? curRadius : fitDist;
+
+    const minR = fitDist * 0.8;
+    const maxR = fitDist * 1.2;
+    const keepRadius = THREE.MathUtils.clamp(rawKeep, minR, maxR);
+
+    const dir0 = camera.position.clone().sub(currentTarget);
+    const dir = dir0.lengthSq() > 1e-8 ? dir0.normalize() : new THREE.Vector3(0, 0, 1);
+    const newPos = newTarget.clone().add(dir.multiplyScalar(keepRadius));
+
     camera.position.copy(newPos);
     controls.target.copy(newTarget);
 
-    const ZOOM_MIN_FACTOR = 0.9;
-    const ZOOM_MAX_FACTOR = 1.3;
-    controls.minDistance = Math.max(distFit * ZOOM_MIN_FACTOR, 0.05);
-    controls.maxDistance = distFit * ZOOM_MAX_FACTOR;
+    controls.minDistance = minR;
+    controls.maxDistance = maxR;
 
-    persp.near = Math.max(0.005, distFit / 600);
-    persp.far = Math.max(persp.near + 1, distFit * 300);
+    persp.near = Math.max(0.005, keepRadius / 600);
+    persp.far = Math.max(persp.near + 1, keepRadius * 300);
     persp.updateProjectionMatrix();
 
     controls.update?.();
@@ -233,7 +241,7 @@ export default function ThreeViewer() {
   return (
     <div className="relative w-full h-[80vh]">
       <Canvas
-        frameloop="demand"     
+        frameloop="demand"
         shadows={false}
         dpr={[1, 2]}
         camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 300 }}
