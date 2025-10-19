@@ -1,5 +1,5 @@
-"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
 import { Suspense, useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
 import * as THREE from "three";
@@ -17,7 +17,9 @@ import ViewAnimator from "@/components/view-animator";
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
-  root.traverse((o) => { if (o.name === name) hit = o; });
+  root.traverse((o) => {
+    if (o.name === name) hit = o;
+  });
   return hit;
 }
 
@@ -40,8 +42,10 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(headG);
   if (!isFinite(box.min.x) || box.isEmpty()) return;
-  const centerWorld = new THREE.Vector3(); box.getCenter(centerWorld);
-  const q = new THREE.Quaternion(); headG.getWorldQuaternion(q);
+  const centerWorld = new THREE.Vector3();
+  box.getCenter(centerWorld);
+  const q = new THREE.Quaternion();
+  headG.getWorldQuaternion(q);
   stoneG.position.copy(centerWorld);
   stoneG.quaternion.copy(q);
   stoneG.scale.set(1, 1, 1);
@@ -52,10 +56,9 @@ function useAutoFrame(
   groupRef: React.RefObject<THREE.Group | null>,
   controlsRef: React.RefObject<any>,
   deps: unknown[],
-  padding = 1.2,
-  view360 = false
+  padding = 1.15
 ) {
-  const { camera, size, invalidate } = useThree();
+  const { camera, size } = useThree();
 
   useLayoutEffect(() => {
     const root = groupRef.current;
@@ -69,41 +72,34 @@ function useAutoFrame(
     box.getBoundingSphere(sphere);
 
     const persp = camera as THREE.PerspectiveCamera;
-    const vFov = persp.fov * (Math.PI / 180);
-    const aspect = (size.width || 1) / (size.height || 1);
+    const vFov = (persp.fov * Math.PI) / 180;
+    const aspect = (size.width || 1) / Math.max(1, size.height || 1);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
 
-    const radius = sphere.radius * padding;
-    const distV = radius / Math.tan(vFov / 2);
-    const distH = radius / Math.tan(hFov / 2);
-    const dist = Math.max(distV, distH);
+    const radiusFit = Math.max(1e-4, sphere.radius) * padding;
+    const distV = radiusFit / Math.tan(vFov / 2);
+    const distH = radiusFit / Math.tan(hFov / 2);
+    const distFit = Math.max(distV, distH);
 
     const newTarget = sphere.center.clone();
 
-    persp.near = Math.max(0.01, dist / 200);
-    persp.far = Math.max(persp.near + 1, dist * 20);
+    const dir = camera.position.clone().sub(newTarget).normalize();
+    const newPos = newTarget.clone().add(dir.multiplyScalar(distFit));
+    camera.position.copy(newPos);
+    controls.target.copy(newTarget);
 
-    if (view360) {
-      const oldTarget = controls.target ? controls.target.clone() : new THREE.Vector3();
-      const delta = newTarget.clone().sub(oldTarget);
-      camera.position.add(delta);
-      controls.target.copy(newTarget);
-    } else {
-      const dir = camera.position.clone().sub(newTarget).normalize();
-      const newPos = newTarget.clone().add(dir.multiplyScalar(dist));
-      camera.position.copy(newPos);
-      controls.target.copy(newTarget);
+    const ZOOM_MIN_FACTOR = 0.9;
+    const ZOOM_MAX_FACTOR = 1.3;
+    controls.minDistance = Math.max(distFit * ZOOM_MIN_FACTOR, 0.05);
+    controls.maxDistance = distFit * ZOOM_MAX_FACTOR;
 
-      controls.minDistance = dist * 0.9;
-      controls.maxDistance = dist * 1.4;
-    }
-
-    camera.lookAt(newTarget);
+    persp.near = Math.max(0.005, distFit / 600);
+    persp.far = Math.max(persp.near + 1, distFit * 300);
     persp.updateProjectionMatrix();
+
     controls.update?.();
-    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupRef, controlsRef, size.width, size.height, view360, ...deps]);
+  }, [groupRef, controlsRef, size.width, size.height, ...deps]);
 }
 
 function SceneContent() {
@@ -118,22 +114,50 @@ function SceneContent() {
 
   const ringGroup = useRef<THREE.Group | null>(null);
   const shankG = useRef<THREE.Group | null>(null);
-  const headG  = useRef<THREE.Group | null>(null);
+  const headG = useRef<THREE.Group | null>(null);
   const stoneG = useRef<THREE.Group | null>(null);
 
-  const { invalidate } = useThree();
-  const { setControls, view360 } = useView();
+  const { setControls } = useView();
+  const { gl, invalidate } = useThree();
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const onStart = () => {
+      gl.setPixelRatio(0.75);
+      invalidate();
+    };
+    const onChange = () => invalidate();
+    const onEnd = () => {
+      gl.setPixelRatio(window.devicePixelRatio);
+      invalidate();
+    };
+
+    controls.addEventListener("start", onStart);
+    controls.addEventListener("change", onChange);
+    controls.addEventListener("end", onEnd);
+
+    return () => {
+      controls.removeEventListener("start", onStart);
+      controls.removeEventListener("change", onChange);
+      controls.removeEventListener("end", onEnd);
+    };
+  }, [gl, invalidate]);
 
   useEffect(() => {
     setControls(controlsRef.current);
     return () => setControls(null);
   }, [setControls]);
 
-  const anchors = useMemo(() => ({
-    shankA: findByName(refRoot, "ANCHOR_SHANK"),
-    headA:  findByName(refRoot, "ANCHOR_HEAD"),
-    stoneA: findByName(refRoot, "ANCHOR_STONE"),
-  }), [refRoot]);
+  const anchors = useMemo(
+    () => ({
+      shankA: findByName(refRoot, "ANCHOR_SHANK"),
+      headA: findByName(refRoot, "ANCHOR_HEAD"),
+      stoneA: findByName(refRoot, "ANCHOR_STONE"),
+    }),
+    [refRoot]
+  );
 
   const cylinderMesh = useMemo(() => {
     let hit: THREE.Mesh | null = null;
@@ -149,7 +173,7 @@ function SceneContent() {
   const [layoutTick, setLayoutTick] = useState(0);
   useLayoutEffect(() => {
     if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
-    if (anchors.headA  && headG.current)  copyWorldPR(anchors.headA,  headG.current);
+    if (anchors.headA && headG.current) copyWorldPR(anchors.headA, headG.current);
 
     if (stoneG.current) {
       if (anchors.stoneA) {
@@ -158,24 +182,14 @@ function SceneContent() {
         copyWorldPR(headG.current, stoneG.current);
         requestAnimationFrame(() => {
           if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
-          requestAnimationFrame(() => {
-            if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
-            invalidate();
-          });
         });
       }
     }
-
-    requestAnimationFrame(() => {
-      (controlsRef.current as any)?.update?.();
-      invalidate();
-    });
-
     setLayoutTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
 
-  useAutoFrame(ringGroup, controlsRef, [style, shape, layoutTick], 1.2, view360);
+  useAutoFrame(ringGroup, controlsRef, [style, shape, layoutTick], 1.15);
 
   return (
     <>
@@ -184,7 +198,6 @@ function SceneContent() {
       <group ref={ringGroup}>
         <group ref={shankG}>
           <ShankModel style={style as any} metal={metal as any} />
-
           {engravingText ? (
             <Suspense fallback={null}>
               <EngravingModel sourceMesh={cylinderMesh ?? null} />
@@ -201,7 +214,7 @@ function SceneContent() {
         </group>
       </group>
 
-      <Environment files="/hdrs/metal3.hdr" background={false} />
+      <Environment files="/hdrs/metal3.hdr" background={false} blur={0.2} />
       <ViewAnimator />
 
       <OrbitControls
@@ -210,10 +223,7 @@ function SceneContent() {
         enablePan={false}
         enableDamping
         dampingFactor={0.08}
-        minDistance={0.2}
-        maxDistance={10}
         zoomSpeed={0.9}
-        onChange={() => invalidate()}
       />
     </>
   );
@@ -223,10 +233,10 @@ export default function ThreeViewer() {
   return (
     <div className="relative w-full h-[80vh]">
       <Canvas
-        shadows
-        frameloop="demand"
+        frameloop="demand"     
+        shadows={false}
         dpr={[1, 2]}
-        camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 50 }}
+        camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 300 }}
         gl={{
           antialias: true,
           powerPreference: "high-performance",
