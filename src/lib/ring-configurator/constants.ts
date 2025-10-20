@@ -1,3 +1,4 @@
+import { Metal, Purity } from "@/store/configurator";
 import type { EngravingFont, MetalType, RingStyle, StoneShape } from "./types";
 
 export const STONE_SHAPES: Array<{
@@ -81,76 +82,87 @@ export const RING_STYLES: {
 export const METAL_TYPES: {
   value: MetalType;
   label: string;
-  karat: string;
+  karat: Purity;
+  metal: Metal;
   backgroundColor: string;
 }[] = [
   {
     value: "18k-white",
     label: "White Gold",
-    karat: "18K",
+    karat: "18k",
+    metal: "white",
     backgroundColor:
       "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
   },
   {
     value: "18k-yellow",
     label: "Yellow Gold",
-    karat: "18K",
+    karat: "18k",
+    metal: "yellow",
     backgroundColor:
       "linear-gradient(106.57deg, #B49F71 0%, #F8E2B0 50%, #B49F71 100%)",
   },
   {
     value: "18k-rose",
     label: "Rose Gold",
-    karat: "18K",
+    karat: "18k",
+    metal: "rose",
     backgroundColor:
       "linear-gradient(106.57deg, #BC9683 0%, #FDD9C6 50%, #BC9683 100%)",
   },
   {
     value: "14k-white",
     label: "White Gold",
-    karat: "14K",
+    karat: "14k",
+    metal: "white",
     backgroundColor:
       "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
   },
   {
     value: "14k-yellow",
     label: "Yellow Gold",
-    karat: "14K",
+    karat: "14k",
+    metal: "yellow",
     backgroundColor:
       "linear-gradient(106.57deg, #B49F71 0%, #F8E2B0 50%, #B49F71 100%)",
   },
   {
     value: "14k-rose",
     label: "Rose Gold",
-    karat: "14K",
+    karat: "14k",
+    metal: "rose",
     backgroundColor:
       "linear-gradient(106.57deg, #BC9683 0%, #FDD9C6 50%, #BC9683 100%)",
   },
   {
     value: "9k-white",
     label: "White Gold",
-    karat: "9K",
+    karat: "9k",
+    metal: "white",
     backgroundColor:
       "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
   },
   {
     value: "9k-yellow",
     label: "Yellow Gold",
-    karat: "9K",
+    karat: "9k",
+    metal: "yellow",
     backgroundColor:
       "linear-gradient(106.57deg, #B49F71 0%, #F8E2B0 50%, #B49F71 100%)",
   },
   {
     value: "9k-rose",
     label: "Rose Gold",
-    karat: "9K",
+    karat: "9k",
+    metal: "rose",
     backgroundColor:
       "linear-gradient(106.57deg, #BC9683 0%, #FDD9C6 50%, #BC9683 100%)",
   },
   {
     value: "platinum",
     label: "Platinum",
-    karat: "Platinum",
+    karat: null as Purity,
+    metal: "platinum",
     backgroundColor:
       "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },

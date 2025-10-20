@@ -74,7 +74,7 @@ export default function RingConfiguratorClient() {
   return (
     <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
       <ViewProvider>
-        <div className="mx-auto bg-white max-w-[1440px] lg:px-[80px] lg:py-[64px]">
+        <div className="mx-auto bg-white max-w-[1440px] pb-16 lg:px-20 lg:py-16">
           <StepIndicator
             currentStep={currentStep}
             steps={STEPS}
