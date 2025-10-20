@@ -1,23 +1,32 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Suspense, useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
-import * as THREE from "three";
-import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import * as THREE from "three";
 import { OBJLoader } from "three-stdlib";
 
-import ShankModel from "@/components/shank-model";
-import HeadModel from "@/components/head-model";
-import StoneModel from "@/components/stone-model";
 import EngravingModel from "@/components/engraving-model";
-import { useConfigStore } from "@/store/configurator";
-import { useView } from "@/components/view-context";
+import HeadModel from "@/components/head-model";
+import ShankModel from "@/components/shank-model";
+import StoneModel from "@/components/stone-model";
 import ViewAnimator from "@/components/view-animator";
+import { useView } from "@/components/view-context";
+import { useConfigStore } from "@/store/configurator";
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
-  root.traverse((o) => { if (o.name === name) hit = o; });
+  root.traverse((o) => {
+    if (o.name === name) hit = o;
+  });
   return hit;
 }
 
@@ -40,8 +49,10 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(headG);
   if (!isFinite(box.min.x) || box.isEmpty()) return;
-  const centerWorld = new THREE.Vector3(); box.getCenter(centerWorld);
-  const q = new THREE.Quaternion(); headG.getWorldQuaternion(q);
+  const centerWorld = new THREE.Vector3();
+  box.getCenter(centerWorld);
+  const q = new THREE.Quaternion();
+  headG.getWorldQuaternion(q);
   stoneG.position.copy(centerWorld);
   stoneG.quaternion.copy(q);
   stoneG.scale.set(1, 1, 1);
@@ -84,7 +95,9 @@ function useAutoFrame(
     persp.far = Math.max(persp.near + 1, dist * 20);
 
     if (view360) {
-      const oldTarget = controls.target ? controls.target.clone() : new THREE.Vector3();
+      const oldTarget = controls.target
+        ? controls.target.clone()
+        : new THREE.Vector3();
       const delta = newTarget.clone().sub(oldTarget);
       camera.position.add(delta);
       controls.target.copy(newTarget);
@@ -118,7 +131,7 @@ function SceneContent() {
 
   const ringGroup = useRef<THREE.Group | null>(null);
   const shankG = useRef<THREE.Group | null>(null);
-  const headG  = useRef<THREE.Group | null>(null);
+  const headG = useRef<THREE.Group | null>(null);
   const stoneG = useRef<THREE.Group | null>(null);
 
   const { invalidate } = useThree();
@@ -129,11 +142,14 @@ function SceneContent() {
     return () => setControls(null);
   }, [setControls]);
 
-  const anchors = useMemo(() => ({
-    shankA: findByName(refRoot, "ANCHOR_SHANK"),
-    headA:  findByName(refRoot, "ANCHOR_HEAD"),
-    stoneA: findByName(refRoot, "ANCHOR_STONE"),
-  }), [refRoot]);
+  const anchors = useMemo(
+    () => ({
+      shankA: findByName(refRoot, "ANCHOR_SHANK"),
+      headA: findByName(refRoot, "ANCHOR_HEAD"),
+      stoneA: findByName(refRoot, "ANCHOR_STONE"),
+    }),
+    [refRoot]
+  );
 
   const cylinderMesh = useMemo(() => {
     let hit: THREE.Mesh | null = null;
@@ -148,8 +164,10 @@ function SceneContent() {
 
   const [layoutTick, setLayoutTick] = useState(0);
   useLayoutEffect(() => {
-    if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
-    if (anchors.headA  && headG.current)  copyWorldPR(anchors.headA,  headG.current);
+    if (anchors.shankA && shankG.current)
+      copyWorldPR(anchors.shankA, shankG.current);
+    if (anchors.headA && headG.current)
+      copyWorldPR(anchors.headA, headG.current);
 
     if (stoneG.current) {
       if (anchors.stoneA) {
@@ -157,9 +175,11 @@ function SceneContent() {
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
         requestAnimationFrame(() => {
-          if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
+          if (headG.current && stoneG.current)
+            snapStoneToHead(headG.current, stoneG.current);
           requestAnimationFrame(() => {
-            if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
+            if (headG.current && stoneG.current)
+              snapStoneToHead(headG.current, stoneG.current);
             invalidate();
           });
         });
@@ -175,7 +195,13 @@ function SceneContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
 
-  useAutoFrame(ringGroup, controlsRef, [style, shape, layoutTick], 1.2, view360);
+  useAutoFrame(
+    ringGroup,
+    controlsRef,
+    [style, shape, layoutTick],
+    1.2,
+    view360
+  );
 
   return (
     <>
@@ -221,7 +247,7 @@ function SceneContent() {
 
 export default function ThreeViewer() {
   return (
-    <div className="relative w-full h-[80vh]">
+    <div className="relative w-full h-[485px] md:h-full md:max-h-[680px]">
       <Canvas
         shadows
         frameloop="demand"

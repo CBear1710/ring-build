@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import {
   Group,
   Mesh,
-  MeshStandardMaterial,
   MeshPhysicalMaterial,
+  MeshStandardMaterial,
   Object3D,
 } from "three";
-import { useGLTF } from "@react-three/drei";
 
 const STYLE_TO_SRC = {
   plain: "/models/PLAIN.glb",
@@ -36,20 +36,54 @@ const METAL_TINT: Record<
   }
 > = {
   // Cool, bright white-metal look
-  white:    { color: [0.93, 0.95, 1.00], metalness: 1.0, roughness: 0.06, envMapIntensity: 1.35, clearcoat: 0.2, clearcoatRoughness: 0.02 },
+  white: {
+    color: [0.93, 0.95, 1.0],
+    metalness: 1.0,
+    roughness: 0.06,
+    envMapIntensity: 1.35,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.02,
+  },
   // Rich yellow gold
-  yellow:   { color: [0.83, 0.66, 0.22], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.50, clearcoat: 0.15, clearcoatRoughness: 0.03 },
+  yellow: {
+    color: [0.83, 0.66, 0.22],
+    metalness: 1.0,
+    roughness: 0.08,
+    envMapIntensity: 1.5,
+    clearcoat: 0.15,
+    clearcoatRoughness: 0.03,
+  },
   // Warmer rose gold
-  rose:     { color: [0.82, 0.54, 0.50], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.45, clearcoat: 0.15, clearcoatRoughness: 0.03 },
+  rose: {
+    color: [0.82, 0.54, 0.5],
+    metalness: 1.0,
+    roughness: 0.08,
+    envMapIntensity: 1.45,
+    clearcoat: 0.15,
+    clearcoatRoughness: 0.03,
+  },
   // Slightly darker than “white”
-  platinum: { color: [0.90, 0.92, 0.95], metalness: 1.0, roughness: 0.05, envMapIntensity: 1.40, clearcoat: 0.25, clearcoatRoughness: 0.02 },
+  platinum: {
+    color: [0.9, 0.92, 0.95],
+    metalness: 1.0,
+    roughness: 0.05,
+    envMapIntensity: 1.4,
+    clearcoat: 0.25,
+    clearcoatRoughness: 0.02,
+  },
 };
 
 type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
 
 function tintMetal(root: Object3D, metal: Metal) {
-  const { color, roughness, metalness, envMapIntensity, clearcoat, clearcoatRoughness } =
-    METAL_TINT[metal];
+  const {
+    color,
+    roughness,
+    metalness,
+    envMapIntensity,
+    clearcoat,
+    clearcoatRoughness,
+  } = METAL_TINT[metal];
 
   root.traverse((o) => {
     const m = (o as Mesh).material as AnyMetalMat | AnyMetalMat[] | undefined;

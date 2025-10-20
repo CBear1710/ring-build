@@ -1,9 +1,9 @@
 "use client"
 
-import Image from "next/image"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useConfigStore } from "@/store/configurator"
+import Image from "next/image"
 
 const METALS = [
   { key: "white",    label: "White Gold",  src: "/metal/white.png" },

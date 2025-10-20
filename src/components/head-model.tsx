@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
+  BufferAttribute,
+  BufferGeometry,
   Group,
   Mesh,
-  MeshStandardMaterial,
   MeshPhysicalMaterial,
+  MeshStandardMaterial,
   Object3D,
-  BufferGeometry,
-  BufferAttribute,
 } from "three";
-import { useGLTF } from "@react-three/drei";
 
 type ShapeKey =
   | "round"
@@ -41,26 +41,25 @@ const HEAD_TO_SRC: Record<ShapeKey, string> = {
   asscher: "/models/ASSCHER.glb",
 };
 
-
 const STONE_BASE_XZ_MIN: Record<ShapeKey, number> = {
-  round: 2.40,
-  princess: 1.60,
-  cushion: 1.80,
-  oval: 1.50,
+  round: 2.4,
+  princess: 1.6,
+  cushion: 1.8,
+  oval: 1.5,
   radiant: 1.55,
   pear: 1.15,
-  emerald: 1.10,
-  marquise: 1.30,
-  heart: 1.10,
+  emerald: 1.1,
+  marquise: 1.3,
+  heart: 1.1,
   asscher: 1.25,
 };
 
 const CARAT_STEP_SIZE = 0.25;
 const CARAT_MIN = 0.25;
-const STONE_STEP_GAIN = 0.015; 
+const STONE_STEP_GAIN = 0.015;
 
-const HEAD_GROW_RATIO = 0.95; 
-const HEAD_CLEARANCE = 0.04;  
+const HEAD_GROW_RATIO = 0.95;
+const HEAD_CLEARANCE = 0.04;
 
 const SEAT_ALPHA = -1.3;
 const HEAD_BASE_SCALE_XZ = 1.1;
@@ -68,12 +67,37 @@ const HEAD_BASE_SCALE_Y = 1.0;
 
 const METAL_TINT: Record<
   Metal,
-  { color: [number, number, number]; metalness: number; roughness: number; envMapIntensity: number }
+  {
+    color: [number, number, number];
+    metalness: number;
+    roughness: number;
+    envMapIntensity: number;
+  }
 > = {
-  white: { color: [0.93, 0.95, 1.0], metalness: 1.0, roughness: 0.06, envMapIntensity: 1.35 },
-  yellow: { color: [0.83, 0.66, 0.22], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.50 },
-  rose: { color: [0.82, 0.54, 0.50], metalness: 1.0, roughness: 0.08, envMapIntensity: 1.45 },
-  platinum: { color: [0.90, 0.92, 0.95], metalness: 1.0, roughness: 0.05, envMapIntensity: 1.40 },
+  white: {
+    color: [0.93, 0.95, 1.0],
+    metalness: 1.0,
+    roughness: 0.06,
+    envMapIntensity: 1.35,
+  },
+  yellow: {
+    color: [0.83, 0.66, 0.22],
+    metalness: 1.0,
+    roughness: 0.08,
+    envMapIntensity: 1.5,
+  },
+  rose: {
+    color: [0.82, 0.54, 0.5],
+    metalness: 1.0,
+    roughness: 0.08,
+    envMapIntensity: 1.45,
+  },
+  platinum: {
+    color: [0.9, 0.92, 0.95],
+    metalness: 1.0,
+    roughness: 0.05,
+    envMapIntensity: 1.4,
+  },
 };
 
 type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
@@ -138,7 +162,11 @@ function normalizeHeadToSeat_slice(child: Object3D) {
   const yMin = yForSlice - band * 0.5;
   const yMax = yForSlice + band * 0.5;
 
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, found = false;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minZ = Infinity,
+    maxZ = -Infinity,
+    found = false;
   const v = new THREE.Vector3();
 
   child.traverse((o) => {
@@ -200,11 +228,11 @@ export default function HeadModel({
   const baseYScaleRef = useRef<number>(1);
 
   const computeHeadXZ = (shapeKey: ShapeKey, caratVal: number) => {
-    const rStone = stoneGainFromCarat(caratVal);         
-    const rHead  = rStone * HEAD_GROW_RATIO;             
+    const rStone = stoneGainFromCarat(caratVal);
+    const rHead = rStone * HEAD_GROW_RATIO;
     const xzUnclamped = HEAD_BASE_SCALE_XZ + rHead;
 
-    const stoneBase = STONE_BASE_XZ_MIN[shapeKey];       
+    const stoneBase = STONE_BASE_XZ_MIN[shapeKey];
     const maxAllowed = stoneBase + rStone - HEAD_CLEARANCE;
 
     return Math.max(0.001, Math.min(xzUnclamped, maxAllowed));
@@ -244,7 +272,7 @@ export default function HeadModel({
     const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
-  }, [scene, url, shape]); 
+  }, [scene, url, shape]);
 
   useEffect(() => {
     if (!childRef.current) return;

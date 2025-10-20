@@ -1,6 +1,4 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
@@ -43,59 +41,59 @@ type EngravingControls = {
   engravingSize: number;
   engravingLetterSpacing: number;
   engravingColor: string;
-  engravingOpacity: number; 
+  engravingOpacity: number;
   engravingSide: EngravingSide;
-  engravingOffsetX: number; 
+  engravingOffsetX: number;
 };
 
 export type ConfigState = {
-  // core
+  // Core
   resetKeepTab: () => void;
   tab: Tab;
   style: Style;
   metal: Metal;
   purity: Purity;
 
-  // stone
+  // Stone
   shape: Shape;
   carat: number;
 
-  // sizing
+  // Sizing
   ringSize: number;
 
-  // engraving
+  // Engraving
 } & EngravingControls & {
-  // setters
-  setTab: (t: Tab) => void;
-  setStyle: (s: Style) => void;
-  setMetal: (m: Metal) => void;
-  setPurity: (p: Purity) => void;
+    // Setters
+    setTab: (t: Tab) => void;
+    setStyle: (s: Style) => void;
+    setMetal: (m: Metal) => void;
+    setPurity: (p: Purity) => void;
 
-  setShape: (s: Shape) => void;
-  setCarat: (c: number) => void;
+    setShape: (s: Shape) => void;
+    setCarat: (c: number) => void;
 
-  setRingSize: (v: number) => void;
+    setRingSize: (v: number) => void;
 
-  setEngravingEnabled: (v: boolean) => void;
-  setEngravingText: (t: string) => void;
+    setEngravingEnabled: (v: boolean) => void;
+    setEngravingText: (t: string) => void;
 
-  setEngravingFont: (f: EngravingFont) => void;
+    setEngravingFont: (f: EngravingFont) => void;
 
-  setEngravingFontFromAny: (f: string | undefined | null) => void;
+    setEngravingFontFromAny: (f: string | undefined | null) => void;
 
-  setEngravingFontUrl: (v?: string) => void;
-  setEngravingSize: (v: number) => void;
-  setEngravingLetterSpacing: (v: number) => void;
-  setEngravingColor: (v: string) => void;
-  setEngravingOpacity: (v: number) => void;
-  setEngravingSide: (v: EngravingSide) => void;
-  setEngravingOffsetX: (v: number) => void;
+    setEngravingFontUrl: (v?: string) => void;
+    setEngravingSize: (v: number) => void;
+    setEngravingLetterSpacing: (v: number) => void;
+    setEngravingColor: (v: string) => void;
+    setEngravingOpacity: (v: number) => void;
+    setEngravingSide: (v: EngravingSide) => void;
+    setEngravingOffsetX: (v: number) => void;
 
-  // batch helper for engraving controls
-  setEngraving: (patch: Partial<EngravingControls>) => void;
+    // Batch helper for engraving controls
+    setEngraving: (patch: Partial<EngravingControls>) => void;
 
-  reset: () => void;
-};
+    reset: () => void;
+  };
 
 // ------- Defaults (typed, narrow, no 'any') -------
 export const DEFAULTS = {
@@ -109,24 +107,24 @@ export const DEFAULTS = {
 
   ringSize: 2,
 
-  // engraving defaults
+  // Engraving Defaults
   engravingEnabled: false,
   engravingText: "",
-  engravingFont: "regular" as EngravingFont, 
-  engravingFontUrl: undefined, 
+  engravingFont: "regular" as EngravingFont,
+  engravingFontUrl: undefined,
   engravingSize: 1.6,
   engravingLetterSpacing: 0.02,
   engravingColor: "#222222",
   engravingOpacity: 1,
   engravingSide: "inner" as const,
   engravingOffsetX: 0,
-} satisfies Omit<ConfigState, keyof ConfigState & string>; 
+} satisfies Omit<ConfigState, keyof ConfigState & string>;
 
 export const useConfigStore = create<ConfigState>()(
   subscribeWithSelector((set, get) => ({
     ...DEFAULTS,
 
-    // core setters
+    // Core setters
     setTab: (tab) => set({ tab }),
     setStyle: (style) => set({ style }),
 
@@ -141,24 +139,23 @@ export const useConfigStore = create<ConfigState>()(
 
     setPurity: (purity) => set({ purity }),
 
-    // stone
+    // Stone
     setShape: (shape) => set({ shape }),
     setCarat: (carat) => set({ carat }),
 
-    // sizing
+    // Sizing
     setRingSize: (ringSize) => set({ ringSize }),
 
-    // engraving
+    // Engraving
     setEngravingEnabled: (v) => set({ engravingEnabled: v }),
     setEngravingText: (engravingText) => set({ engravingText }),
 
-    // Strict: components should pass only the union
+    // Strict: Components should pass only the Union
     setEngravingFont: (engravingFont) => set({ engravingFont }),
 
-    // Hydration-safe: accepts any string & normalizes to the union
+    // Hydration-safe: Accepts any string & normalizes to the union
     setEngravingFontFromAny: (value) =>
       set({ engravingFont: asEngravingFont(value) }),
-
     setEngravingFontUrl: (v) => set({ engravingFontUrl: v }),
     setEngravingSize: (v) => set({ engravingSize: v }),
     setEngravingLetterSpacing: (v) => set({ engravingLetterSpacing: v }),
@@ -166,10 +163,9 @@ export const useConfigStore = create<ConfigState>()(
     setEngravingOpacity: (v) => set({ engravingOpacity: v }),
     setEngravingSide: (v) => set({ engravingSide: v }),
     setEngravingOffsetX: (v) => set({ engravingOffsetX: v }),
-
     setEngraving: (patch) => set(patch),
 
-    // resets
+    // Resets
     reset: () => set({ ...DEFAULTS }),
     resetKeepTab: () =>
       set((state) => ({
