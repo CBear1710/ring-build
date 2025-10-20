@@ -58,6 +58,8 @@ export function Step2Stone({
   onCaratChange,
   onReset,
 }: Step2StoneProps) {
+  //  const style = useConfigStore((s) => s.style);
+
   return (
     <div>
       <div className="flex items-center justify-between">
