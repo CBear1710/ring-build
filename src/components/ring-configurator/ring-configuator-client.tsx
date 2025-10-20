@@ -90,9 +90,7 @@ export default function RingConfiguratorClient() {
               {/* <RingPreview configuration={configuration} /> */}
               <Viewer />
 
-              <div>
-                <ViewControl />
-              </div>
+              <ViewControl />
             </div>
 
             {/* Right: Configuration Panel */}

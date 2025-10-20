@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { createContext, useContext, useMemo, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
 
-export type View = "perspective" | "top" | "side" | "front" | "custom";
+export type View = "perspective" | "top" | "side" | "front" | "360" | "custom";
 
 type ViewState = {
   view: View;
@@ -13,7 +19,6 @@ type ViewState = {
   setView360: (v: boolean) => void;
   controls: any | null;
   setControls: (c: any | null) => void;
-
   target: THREE.Vector3;
   radius: number | null;
   saveFrom: (camera: THREE.PerspectiveCamera, controls: any) => void;
@@ -62,7 +67,10 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
     if (c?.target) c.target.copy(t);
     if (!opts?.onlyTarget) {
       const dir = cam.position.clone().sub(t).normalize();
-      const r = opts?.preserveRadius && radius != null ? radius : cam.position.distanceTo(t);
+      const r =
+        opts?.preserveRadius && radius != null
+          ? radius
+          : cam.position.distanceTo(t);
       cam.position.copy(t.clone().add(dir.multiplyScalar(r)));
     }
     cam.updateProjectionMatrix();
