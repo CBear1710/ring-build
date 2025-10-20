@@ -75,7 +75,11 @@ export default function RingConfiguratorClient() {
     <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
       <ViewProvider>
         <div className="mx-auto bg-white max-w-[1440px] lg:px-[80px] lg:py-[64px]">
-          <StepIndicator currentStep={currentStep} steps={STEPS} />
+          <StepIndicator
+            currentStep={currentStep}
+            steps={STEPS}
+            setCurrentStep={setCurrentStep}
+          />
 
           <div className="gap-8 flex flex-col lg:flex-row md:mt-10 lg:mt-20">
             {/* Left: Ring Preview */}

@@ -8,9 +8,10 @@ interface Step {
 interface StepIndicatorProps {
   currentStep: number;
   steps: Step[];
+  setCurrentStep: (step: number) => void;
 }
 
-export function StepIndicator({ currentStep, steps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, steps, setCurrentStep }: StepIndicatorProps) {
   return (
     <div className="border border-[#ddd] h-[60px]">
       <div className="flex items-center gap-1 py-2">
@@ -22,7 +23,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps) {
         </div>
         <div className="flex-1 flex items-center">
           {steps.map((step, index) => (
-            <div key={step.number} className="flex-1 flex items-center">
+            <div key={step.number} className="flex-1 flex items-center" onClick={() => setCurrentStep(step.number)}>
               {/* Chevron separator */}
               {index > 0 && <ArrowLeftStep />}
 
