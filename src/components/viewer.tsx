@@ -92,16 +92,15 @@ function useAutoFrame(
 
     const currentTarget = controls.target.clone();
     const curRadius = camera.position.distanceTo(currentTarget);
-    const rawKeep = isFinite(curRadius) && curRadius > 0
-        ? curRadius
-        : fitDist;
+    const rawKeep = isFinite(curRadius) && curRadius > 0 ? curRadius : fitDist;
 
     const minR = fitDist * 0.8;
     const maxR = fitDist * 1.2;
     const keepRadius = THREE.MathUtils.clamp(rawKeep, minR, maxR);
 
     const dir0 = camera.position.clone().sub(currentTarget);
-    const dir = dir0.lengthSq() > 1e-8 ? dir0.normalize() : new THREE.Vector3(0, 0, 1);
+    const dir =
+      dir0.lengthSq() > 1e-8 ? dir0.normalize() : new THREE.Vector3(0, 0, 1);
     const newPos = newTarget.clone().add(dir.multiplyScalar(keepRadius));
 
     camera.position.copy(newPos);
@@ -189,8 +188,10 @@ function SceneContent() {
 
   const [layoutTick, setLayoutTick] = useState(0);
   useLayoutEffect(() => {
-    if (anchors.shankA && shankG.current) copyWorldPR(anchors.shankA, shankG.current);
-    if (anchors.headA && headG.current) copyWorldPR(anchors.headA, headG.current);
+    if (anchors.shankA && shankG.current)
+      copyWorldPR(anchors.shankA, shankG.current);
+    if (anchors.headA && headG.current)
+      copyWorldPR(anchors.headA, headG.current);
 
     if (stoneG.current) {
       if (anchors.stoneA) {
@@ -198,7 +199,8 @@ function SceneContent() {
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
         requestAnimationFrame(() => {
-          if (headG.current && stoneG.current) snapStoneToHead(headG.current, stoneG.current);
+          if (headG.current && stoneG.current)
+            snapStoneToHead(headG.current, stoneG.current);
         });
       }
     }
@@ -232,6 +234,7 @@ function SceneContent() {
       </group>
 
       <Environment files="/hdrs/metal3.hdr" background={false} blur={0.2} />
+
       <ViewAnimator />
 
       <OrbitControls

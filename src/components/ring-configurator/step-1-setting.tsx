@@ -16,14 +16,13 @@ export function Step1Setting() {
   const setPurity = useConfigStore((s) => s.setPurity);
 
   const selectedMetal = METAL_TYPES.find((m) => {
-    const value = purity ? `${purity}-${metal}` : metal;
-    return m.value === value;
+    return m.metal === metal && m.karat === purity;
   });
 
   const handleReset = () => {
     setStyle("plain");
     setMetal("white");
-    setPurity("9k");
+    setPurity("18k");
   };
 
   return (
@@ -84,37 +83,43 @@ export function Step1Setting() {
         </h3>
 
         <div className="grid grid-cols-3 gap-[10px] md:gap-4">
-          {METAL_TYPES.map((metalType) => (
-            <button
-              key={metalType.value}
-              // onClick={() => setMetal(metalType.value)}
-              className={`cursor-pointer flex flex-col items-center gap-1 rounded-[5px] border-2 p-[10px] transition-all hover:opacity-90 ${
-                metal === metalType.value
-                  ? "border-[#0313B0]"
-                  : "bg-[#F9F9F9] border-[#ddd]"
-              }`}
-            >
-              <div
-                className={`h-[30px] w-full rounded relative`}
-                style={{
-                  backgroundImage: `${metalType.backgroundColor}`,
+          {METAL_TYPES.map((metalType) => {
+            const isSelected =
+              metalType.metal === metal && metalType.karat === purity;
+
+            return (
+              <button
+                key={metalType.value}
+                onClick={() => {
+                  setPurity(metalType.karat);
+                  setMetal(metalType.metal);
                 }}
+                className={`cursor-pointer flex flex-col items-center gap-1 rounded-[5px] border-2 p-[10px] transition-all hover:opacity-90 ${
+                  isSelected ? "border-[#0313B0]" : "bg-[#F9F9F9] border-[#ddd]"
+                }`}
               >
-                <div className="text-[#666] text-xs font-semibold absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                  {metalType.karat}
-                </div>
-              </div>
-              <div className="text-center mt-[10px]">
                 <div
-                  className={`text-xs text-[11px] font-semibold ${
-                    metal === metalType.value ? "text-[#0313B0]" : "text-[#666]"
-                  }`}
+                  className={`h-[30px] w-full rounded relative`}
+                  style={{
+                    backgroundImage: `${metalType.backgroundColor}`,
+                  }}
                 >
-                  {metalType.label}
+                  <div className="text-[#666] text-xs font-semibold absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    {metalType.karat ? metalType.karat : "Platinum"}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="text-center mt-[10px]">
+                  <div
+                    className={`text-xs text-[11px] font-semibold ${
+                      isSelected ? "text-[#0313B0]" : "text-[#666]"
+                    }`}
+                  >
+                    {metalType.label}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

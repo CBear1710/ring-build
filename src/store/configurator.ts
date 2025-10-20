@@ -128,15 +128,7 @@ export const useConfigStore = create<ConfigState>()(
     setTab: (tab) => set({ tab }),
     setStyle: (style) => set({ style }),
 
-    setMetal: (metal) => {
-      if (metal === "platinum") {
-        set({ metal, purity: null });
-      } else {
-        const purity = get().purity ?? DEFAULTS.purity;
-        set({ metal, purity });
-      }
-    },
-
+    setMetal: (metal) => set({ metal }),
     setPurity: (purity) => set({ purity }),
 
     // Stone

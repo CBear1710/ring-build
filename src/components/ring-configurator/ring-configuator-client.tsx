@@ -12,6 +12,7 @@ import CopyLink from "@/icons/copy-link";
 import Facebook from "@/icons/facebook";
 import type { RingConfiguration } from "@/lib/ring-configurator/types";
 import { useState } from "react";
+import UrlSync from "../url-sync";
 
 const STEPS = [
   { number: 1, label: "Setting" },
@@ -73,8 +74,10 @@ export default function RingConfiguratorClient() {
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
+      <UrlSync />
+
       <ViewProvider>
-        <div className="mx-auto bg-white max-w-[1440px] lg:px-[80px] lg:py-[64px]">
+        <div className="mx-auto bg-white max-w-[1440px] pb-16 lg:px-20 lg:py-16">
           <StepIndicator
             currentStep={currentStep}
             steps={STEPS}
@@ -87,9 +90,7 @@ export default function RingConfiguratorClient() {
               {/* <RingPreview configuration={configuration} /> */}
               <Viewer />
 
-              <div>
-                <ViewControl />
-              </div>
+              <ViewControl />
             </div>
 
             {/* Right: Configuration Panel */}

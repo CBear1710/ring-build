@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useView } from "@/components/view-context";
+import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useThree } from "@react-three/fiber";
-import { useView } from "@/components/view-context";
 
 const SPIN_SPEED = 5.0;
 
@@ -17,7 +17,7 @@ const DIRS: Record<string, THREE.Vector3> = {
 
 export default function ViewAnimator() {
   const { camera, invalidate } = useThree();
-  const { view, setView, view360, controls } = useView();
+  const { view, setView, view360, controls, setView360 } = useView();
 
   const rafRef = useRef<number | null>(null);
   const lastViewRef = useRef<keyof typeof DIRS | "custom">("perspective");
@@ -25,8 +25,14 @@ export default function ViewAnimator() {
   // detect manual control use
   useEffect(() => {
     const c = controls;
+
     if (!c) return;
-    const onStart = () => setView("custom");
+
+    const onStart = () => {
+      setView("custom");
+      setView360(false);
+    };
+
     c.addEventListener?.("start", onStart);
     return () => c?.removeEventListener?.("start", onStart);
   }, [controls, setView]);
@@ -73,7 +79,8 @@ export default function ViewAnimator() {
     const persp = camera as THREE.PerspectiveCamera;
 
     const curPos = persp.position.clone();
-    const curTarget = (ctrl?.target as THREE.Vector3) ?? new THREE.Vector3(0, 2, 0);
+    const curTarget =
+      (ctrl?.target as THREE.Vector3) ?? new THREE.Vector3(0, 2, 0);
 
     // current distance (radius)
     const radius = curPos.distanceTo(curTarget);
@@ -83,7 +90,7 @@ export default function ViewAnimator() {
 
     const goalPos = curTarget.clone().add(dir.clone().multiplyScalar(radius));
 
-    const T = 500; 
+    const T = 500;
     const t0 = performance.now();
     if (ctrl) ctrl.enabled = false;
 
