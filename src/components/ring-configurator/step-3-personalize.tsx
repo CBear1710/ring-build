@@ -9,17 +9,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Image from "next/image";
 import { RotateCcw } from "lucide-react";
+import Image from "next/image";
 
-import { useConfigStore } from "@/store/configurator";
 import type { EngravingFont } from "@/lib/engraving-fonts";
+import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
 import {
-  RING_SIZES,
   ENGRAVING_FONT_PREVIEWS,
   MAX_ENGRAVING_CHARS,
+  RING_SIZES,
 } from "@/lib/ring-configurator/constants";
-import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
+import { useConfigStore } from "@/store/configurator";
 
 function getSizeMM(size: number) {
   return (11.63 + (size - 1) * 0.4 * 2.54).toFixed(1);
@@ -98,7 +98,7 @@ export function Step3Personalize() {
           <div className="relative flex-1">
             <Input
               type="text"
-              placeholder="Love"
+              placeholder="Type your text"
               value={engravingText}
               onChange={(e) =>
                 setEngravingText(e.target.value.slice(0, MAX_ENGRAVING_CHARS))
@@ -114,8 +114,6 @@ export function Step3Personalize() {
       </div>
 
       <div className="mt-5">
-        <div className="text-sm text-[#333] mb-2">Engraving:</div>
-
         <div className="grid grid-cols-2 gap-3">
           {ENGRAVING_FONT_PREVIEWS.map((f) => {
             const active = engravingFont === f.value;
@@ -128,24 +126,22 @@ export function Step3Personalize() {
                 }}
                 aria-pressed={active}
                 className={[
-                  "h-[60px] sm:h-[68px] rounded-[8px] border-2 px-3",
+                  "h-[60px] sm:h-[68px] rounded-[8px] border-2",
                   "flex items-center justify-center",
-                  "transition-all focus:outline-none focus:ring-2 focus:ring-[#0313B0]/40",
+                  "transition-all focus:outline-none",
                   active
                     ? "border-[#0313B0] bg-white"
                     : "border-[#ddd] bg-[#F9F9F9] hover:bg-[#f2f2f2]",
                 ].join(" ")}
               >
-                <div className="relative w-full max-w-[130px] h-[30px] sm:h-[34px]">
-                  <Image
-                    src={f.src}
-                    alt={f.label}
-                    fill
-                    sizes="130px"
-                    className="object-contain"
-                    priority={false}
-                  />
-                </div>
+                <Image
+                  src={f.src}
+                  alt={f.label}
+                  width={f.w}
+                  height={f.h}
+                  className="object-contain"
+                  priority={false}
+                />
               </button>
             );
           })}

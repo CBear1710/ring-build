@@ -8,11 +8,10 @@ import { ViewControl } from "@/components/ring-configurator/view-control";
 import { Button } from "@/components/ui/button";
 import { ViewProvider } from "@/components/view-context";
 import Viewer from "@/components/viewer";
-import CopyLink from "@/icons/copy-link";
-import Facebook from "@/icons/facebook";
 import type { RingConfiguration } from "@/lib/ring-configurator/types";
 import { useState } from "react";
 import UrlSync from "../url-sync";
+import { ShareActions } from "./share-actions";
 
 const STEPS = [
   { number: 1, label: "Setting" },
@@ -33,33 +32,6 @@ const DEFAULT_CONFIG: RingConfiguration = {
 export default function RingConfiguratorClient() {
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [configuration, setConfiguration] =
-    useState<RingConfiguration>(DEFAULT_CONFIG);
-
-  const updateConfiguration = (updates: Partial<RingConfiguration>) => {
-    setConfiguration((prev) => ({ ...prev, ...updates }));
-  };
-
-  const resetStep = () => {
-    if (currentStep === 1) {
-      updateConfiguration({
-        style: DEFAULT_CONFIG.style,
-        metal: DEFAULT_CONFIG.metal,
-      });
-    } else if (currentStep === 2) {
-      updateConfiguration({
-        shape: DEFAULT_CONFIG.shape,
-        carat: DEFAULT_CONFIG.carat,
-      });
-    } else if (currentStep === 3) {
-      updateConfiguration({
-        size: DEFAULT_CONFIG.size,
-        engraving: DEFAULT_CONFIG.engraving,
-        engravingFont: DEFAULT_CONFIG.engravingFont,
-      });
-    }
-  };
-
   const handleNext = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
@@ -71,6 +43,8 @@ export default function RingConfiguratorClient() {
     if (currentStep === 2) return "PERSONALIZE →";
     return "VIEW DETAIL";
   };
+
+  // Share, Facebook
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
@@ -97,31 +71,9 @@ export default function RingConfiguratorClient() {
                 <div className="flex-1">
                   {currentStep === 1 && <Step1Setting />}
 
-                  {currentStep === 2 && (
-                    <Step2Stone
-                      shape={configuration.shape}
-                      carat={configuration.carat}
-                      onShapeChange={(shape) => updateConfiguration({ shape })}
-                      onCaratChange={(carat) => updateConfiguration({ carat })}
-                      onReset={resetStep}
-                    />
-                  )}
+                  {currentStep === 2 && <Step2Stone />}
 
-                  {currentStep === 3 && (
-                    <Step3Personalize
-                      size={configuration.size}
-                      engraving={configuration.engraving}
-                      engravingFont={configuration.engravingFont}
-                      onSizeChange={(size) => updateConfiguration({ size })}
-                      onEngravingChange={(engraving) =>
-                        updateConfiguration({ engraving })
-                      }
-                      onEngravingFontChange={(engravingFont) =>
-                        updateConfiguration({ engravingFont })
-                      }
-                      onReset={resetStep}
-                    />
-                  )}
+                  {currentStep === 3 && <Step3Personalize />}
                 </div>
 
                 <div className="mt-7 md:mt-10">
@@ -135,11 +87,7 @@ export default function RingConfiguratorClient() {
                     </Button>
 
                     <div className="mx-auto">
-                      <div className="flex gap-5 md:gap-2">
-                        <CopyLink />
-
-                        <Facebook />
-                      </div>
+                      <ShareActions />
                     </div>
                   </div>
                 </div>

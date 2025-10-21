@@ -1,10 +1,10 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { STONE_SHAPES } from "@/lib/ring-configurator/constants";
+import { useConfigStore } from "@/store/configurator";
 import { RotateCcw } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useConfigStore, type Shape } from "@/store/configurator";
-import { STONE_SHAPES } from "@/lib/ring-configurator/constants";
+import { useEffect, useRef, useState } from "react";
 
 /** === Carat slider config (from old StoneCard) === */
 const MIN = 0.25;
@@ -35,8 +35,9 @@ function fracFromValue(v: number) {
 }
 
 export function Step2Stone() {
-  const shape: Shape = useConfigStore((s) => s.shape);
+  const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
+
   const setShape = useConfigStore((s) => s.setShape);
   const setCarat = useConfigStore((s) => s.setCarat);
 
@@ -71,7 +72,7 @@ export function Step2Stone() {
     const rail = railRef.current;
     if (!rail) return;
     const rect = rail.getBoundingClientRect();
-    const r = railHeight / 2;                   // rounded rail caps
+    const r = railHeight / 2; // rounded rail caps
     const inner = Math.max(0, railWidth - 2 * r);
     const x = clamp(clientX - rect.left, 0, railWidth);
     const xClamped = clamp(x - r, 0, inner);
@@ -129,7 +130,8 @@ export function Step2Stone() {
     <div>
       <div className="flex items-center justify-between">
         <h3 className="text-base text-[#666]">
-          Shape: <span className="font-semibold capitalize text-[#333]">{shape}</span>
+          Shape:{" "}
+          <span className="font-semibold capitalize text-[#333]">{shape}</span>
         </h3>
         <Button
           variant="outline"
@@ -148,7 +150,9 @@ export function Step2Stone() {
             key={stone.value}
             onClick={() => setShape(stone.value)}
             className={`cursor-pointer flex flex-col items-center gap-1 rounded-[5px] border-2 p-[10px] transition-all hover:opacity-90 ${
-              shape === stone.value ? "border-[#0313B0]" : "bg-[#F9F9F9] border-[#ddd]"
+              shape === stone.value
+                ? "border-[#0313B0]"
+                : "bg-[#F9F9F9] border-[#ddd]"
             }`}
           >
             <Image

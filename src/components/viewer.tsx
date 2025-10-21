@@ -229,7 +229,7 @@ function SceneContent() {
         </group>
 
         <group ref={stoneG}>
-          <StoneModel shape={shape as any} carat={carat} />
+          <StoneModel />
         </group>
       </group>
 
@@ -251,7 +251,7 @@ function SceneContent() {
 
 export default function ThreeViewer() {
   return (
-    <div className="relative w-full h-[485px] md:h-full md:max-h-[680px]">
+    <div className="relative w-full h-[485px] md:h-full md:max-h-[680px] cursor-pointer">
       <Canvas
         frameloop="demand"
         shadows={false}
