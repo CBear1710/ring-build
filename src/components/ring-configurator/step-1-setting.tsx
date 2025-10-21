@@ -91,7 +91,9 @@ export function Step1Setting() {
               <button
                 key={metalType.value}
                 onClick={() => {
-                  setPurity(metalType.karat);
+                  if (metalType.karat !== null) {
+                    setPurity(metalType.karat);
+                  }
                   setMetal(metalType.metal);
                 }}
                 className={`cursor-pointer flex flex-col items-center gap-1 rounded-[5px] border-2 p-[10px] transition-all hover:opacity-90 ${

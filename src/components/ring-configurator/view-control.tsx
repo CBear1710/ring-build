@@ -1,8 +1,6 @@
 import { Button } from "../ui/button";
 import { useView } from "../view-context";
 
-type ViewMode = "top" | "side" | "front" | "360";
-
 export function ViewControl() {
   const { setView, setView360, view, view360 } = useView();
 

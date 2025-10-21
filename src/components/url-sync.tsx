@@ -1,21 +1,21 @@
 // components/ui/url-sync.tsx
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useQueryStates } from "nuqs";
-import { useSearchParams } from "next/navigation";
-import { useConfigStore } from "@/store/configurator";
 import {
-  styleParser,
+  caratParser,
+  engravingFontParser,
+  engravingTextParser,
   metalParser,
   purityParser,
-  tabParser,
-  shapeParser,
-  caratParser,
-  engravingTextParser,
-  engravingFontParser,
   ringSizeParser,
+  shapeParser,
+  styleParser,
+  tabParser,
 } from "@/lib/query-parsers";
+import { useConfigStore } from "@/store/configurator";
+import { useSearchParams } from "next/navigation";
+import { useQueryStates } from "nuqs";
+import { useEffect, useRef } from "react";
 
 export default function UrlSync() {
   const [qs, setQs] = useQueryStates({
@@ -57,7 +57,14 @@ export default function UrlSync() {
     if (qs.carat != null) setCarat(qs.carat);
     if (qs.size != null) setRingSize(qs.size);
 
-    if (qs.purity !== undefined && qs.purity !== s.purity) setPurity(qs.purity);
+    // Handle purity: only set from URL if metal is not platinum
+    if (
+      qs.purity !== undefined &&
+      qs.purity !== s.purity &&
+      s.metal !== "platinum"
+    ) {
+      setPurity(qs.purity);
+    }
     if (qs.engraving !== undefined) setEngravingText(qs.engraving);
     if (qs.font != null) setEngravingFont(qs.font);
 
@@ -78,7 +85,19 @@ export default function UrlSync() {
     }
 
     if (!hydrated.current) hydrated.current = true;
-  }, [qs, raw, setCarat, setEngravingFont, setEngravingText, setMetal, setPurity, setRingSize, setShape, setStyle, setTab]);
+  }, [
+    qs,
+    raw,
+    setCarat,
+    setEngravingFont,
+    setEngravingText,
+    setMetal,
+    setPurity,
+    setRingSize,
+    setShape,
+    setStyle,
+    setTab,
+  ]);
 
   useEffect(() => {
     const unsub = useConfigStore.subscribe(

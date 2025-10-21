@@ -87,9 +87,7 @@ export default function RingConfiguratorClient() {
           <div className="gap-8 flex flex-col lg:flex-row md:mt-10 lg:mt-20">
             {/* Left: Ring Preview */}
             <div className="lg:w-[60%]">
-              {/* <RingPreview configuration={configuration} /> */}
               <Viewer />
-
               <ViewControl />
             </div>
 
@@ -137,7 +135,6 @@ export default function RingConfiguratorClient() {
                     </Button>
 
                     <div className="mx-auto">
-                      {/* Social share icons */}
                       <div className="flex gap-5 md:gap-2">
                         <CopyLink />
 
