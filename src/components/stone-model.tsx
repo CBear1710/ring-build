@@ -8,8 +8,9 @@ import { Group, Mesh, Object3D } from "three";
 import { GLTFLoader, OBJLoader } from "three-stdlib";
 import { createPortal, useThree } from "@react-three/fiber";
 import { MeshRefractionMaterial } from "@react-three/drei";
+import { useConfigStore } from "@/store/configurator";
 
-
+// ----------------- MODEL SOURCES -----------------
 const SHAPE_TO_SRC = {
   round: "/models/Rounds.glb",
   princess: "/models/princess.obj",
@@ -22,28 +23,30 @@ const SHAPE_TO_SRC = {
   heart: "/models/heart.obj",
   asscher: "/models/asscher.obj",
 } as const;
+
 type ShapeKey = keyof typeof SHAPE_TO_SRC;
 
+// ----------------- POSITION & SCALE TEMPLATES -----------------
 const TEMPLATE_BASE: Record<
   ShapeKey,
   { base: [number, number, number]; pos: [number, number, number] }
 > = {
-  round:    { base: [2.40, 2.40, 2.40], pos: [0, 0.80, 0] },
-  princess: { base: [1.03, 1.03, 1.00], pos: [0, 0.80, 0] },
-  cushion:  { base: [0.90, 1.05, 0.90], pos: [0, 0.80, 0] },
-  oval:     { base: [0.90, 1.20, 1.15], pos: [0, 1.00, 0] },
-  radiant:  { base: [1.75, 1.95, 1.90], pos: [-0.1, 0.80, 0] },
-  pear:     { base: [0.95, 0.85, 1.00], pos: [0, 1.05, -0.9] },
-  emerald:  { base: [1.05, 0.95, 1.10], pos: [0, 0.80, 0] },
-  marquise: { base: [1.05, 1.05, 0.90], pos: [0, 1.10, 0] },
-  heart:    { base: [0.75, 0.95, 0.70], pos: [0, 1.20, -0.6] },
-  asscher:  { base: [0.83, 0.83, 0.90], pos: [0, 0.80, 0] },
+  round: { base: [2.4, 2.4, 2.4], pos: [0, 0.8, 0] },
+  princess: { base: [1.03, 1.03, 1.0], pos: [0, 0.8, 0] },
+  cushion: { base: [0.9, 1.05, 0.9], pos: [0, 0.8, 0] },
+  oval: { base: [0.9, 1.2, 1.15], pos: [0, 1.0, 0] },
+  radiant: { base: [1.75, 1.95, 1.9], pos: [-0.1, 0.8, 0] },
+  pear: { base: [0.95, 0.85, 1.0], pos: [0, 1.05, -0.9] },
+  emerald: { base: [1.05, 0.95, 1.1], pos: [0, 0.8, 0] },
+  marquise: { base: [1.05, 1.05, 0.9], pos: [0, 1.1, 0] },
+  heart: { base: [0.75, 0.95, 0.7], pos: [0, 1.2, -0.6] },
+  asscher: { base: [0.83, 0.83, 0.9], pos: [0, 0.8, 0] },
 };
 
-
+// ----------------- SCALING LOGIC -----------------
 const CARAT_STEP_SIZE = 0.25;
 const CARAT_MIN = 0.25;
-const STEP_GAIN = 0.017; 
+const STEP_GAIN = 0.017;
 
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
@@ -56,7 +59,7 @@ function gainFromCaratDiscrete(carat: number) {
   return stepsFrom1 * STEP_GAIN;
 }
 
-
+// ----------------- NORMALIZE / SIZING HELPERS -----------------
 function normalizeStoneToGirdle(node: Object3D) {
   const bbox = new THREE.Box3().setFromObject(node);
   if (!isFinite(bbox.min.x) || bbox.isEmpty()) return;
@@ -71,20 +74,18 @@ function normalizeStoneToGirdle(node: Object3D) {
 
 function applyTemplateSizing(content: Object3D, shape: ShapeKey, carat: number) {
   const { base, pos } = TEMPLATE_BASE[shape];
-  const r = gainFromCaratDiscrete(carat); 
+  const r = gainFromCaratDiscrete(carat);
   const [bx, by, bz] = base;
   content.scale.set(bx + r, by, bz + r);
   content.position.set(pos[0], pos[1], pos[2]);
   content.updateMatrixWorld(true);
 }
 
-export default function StoneModel({
-  shape,
-  carat,
-}: {
-  shape: ShapeKey;
-  carat: number;
-}) {
+// ----------------- MAIN COMPONENT -----------------
+export default function StoneModel() {
+  const shape = useConfigStore((s) => s.shape);
+  const carat = useConfigStore((s) => s.carat);
+
   const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);
   const { scene } = useThree();
 
@@ -92,10 +93,12 @@ export default function StoneModel({
   const contentRef = useRef<Object3D | null>(null);
   const [meshes, setMeshes] = useState<Mesh[]>([]);
 
+  // Load or reload the stone model whenever shape changes
   useEffect(() => {
     if (!wrapper.current) return;
     let aborted = false;
 
+    // Clear previous stone
     if (contentRef.current) {
       wrapper.current.remove(contentRef.current);
       contentRef.current = null;
@@ -134,7 +137,9 @@ export default function StoneModel({
     const isGLB = url.toLowerCase().endsWith(".glb");
     if (isGLB) {
       new GLTFLoader().load(url, (gltf) => {
-        applyLoaded((gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D);
+        applyLoaded(
+          (gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D
+        );
       });
     } else {
       new OBJLoader().load(url, (obj) => applyLoaded(obj));
@@ -143,9 +148,9 @@ export default function StoneModel({
     return () => {
       aborted = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, shape]); 
+  }, [url, shape, carat]);
 
+  // Re-apply scale when carat changes
   useEffect(() => {
     const content = contentRef.current;
     if (!content) return;
