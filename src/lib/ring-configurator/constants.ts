@@ -1,37 +1,54 @@
-import type { EngravingFont, MetalType, RingStyle, StoneShape } from "./types";
+// lib/ring-configurator/constants.ts
+import type { EngravingFont } from "@/lib/engraving-fonts"; 
+import type { MetalType, RingStyle, StoneShape } from "./types";
 
-export const STONE_SHAPES: Array<{
+export const STONE_SHAPES = [
+  { value: "round",    label: "Round",    image: "/stones/round.png" },
+  { value: "princess", label: "Princess", image: "/stones/princess.png" },
+  { value: "cushion",  label: "Cushion",  image: "/stones/cushion.png" },
+  { value: "oval",     label: "Oval",     image: "/stones/oval.png" },
+  { value: "radiant",  label: "Radiant",  image: "/stones/radiant.png" },
+  { value: "pear",     label: "Pear",     image: "/stones/pear.png" },
+  { value: "emerald",  label: "Emerald",  image: "/stones/emerald.png" },
+  { value: "marquise", label: "Marquise", image: "/stones/marquise.png" },
+  { value: "heart",    label: "Heart",    image: "/stones/heart.png" },
+  { value: "asscher",  label: "Asscher",  image: "/stones/asscher.png" },
+] as const satisfies ReadonlyArray<{
   value: StoneShape;
   label: string;
   image: string;
-}> = [
-  { value: "round", label: "Round", image: "/round-diamond.jpg" },
-  { value: "princess", label: "Princess", image: "/princess-cut-diamond.png" },
-  { value: "cushion", label: "Cushion", image: "/cushion-cut-diamond.png" },
-  { value: "oval", label: "Oval", image: "/oval-diamond.png" },
-  { value: "radiant", label: "Radiant", image: "/radiant-cut-diamond.jpg" },
-  { value: "pear", label: "Pear", image: "/pear-shaped-diamond.jpg" },
-  { value: "emerald", label: "Emerald", image: "/emerald-cut-diamond.jpg" },
-  { value: "marquise", label: "Marquise", image: "/marquise-diamond.png" },
-  { value: "heart", label: "Heart", image: "/heart-shaped-diamond.jpg" },
-  { value: "asscher", label: "Asscher", image: "/asscher-cut-diamond.jpg" },
-];
+}>;
 
-export const ENGRAVING_FONTS: Array<{
+export const MAX_ENGRAVING_CHARS = 15;
+
+export const ENGRAVING_FONTS = [
+  { value: "regular", label: "Regular", fontClass: "font-sans" },
+  { value: "script",  label: "Script",  fontClass: "font-serif italic" },
+  { value: "italics", label: "Italics", fontClass: "font-sans italic" },
+  { value: "roman",   label: "Roman",   fontClass: "font-serif" },
+] as const satisfies ReadonlyArray<{
   value: EngravingFont;
   label: string;
   fontClass: string;
-}> = [
-  { value: "regular", label: "Regular", fontClass: "font-sans" },
-  { value: "script", label: "Script", fontClass: "font-serif italic" },
-  { value: "italics", label: "Italics", fontClass: "font-sans italic" },
-  { value: "roman", label: "Roman", fontClass: "font-serif" },
-];
+}>;
 
-export const RING_SIZES = Array.from({ length: 13 }, (_, i) => {
-  const size = i + 2;
-  const mm = 41.5 + i * 2;
-  return { value: size, label: `${size} (${mm.toFixed(1)}mm)` };
+export const ENGRAVING_FONT_PREVIEWS = [
+  { value: "regular", label: "Regular", src: "/fonts/regular.png", w: 60, h: 20 },
+  { value: "script",  label: "Script",  src: "/fonts/script.png",  w: 60, h: 20 },
+  { value: "italics", label: "Italics", src: "/fonts/italics.png", w: 60, h: 20 },
+  { value: "roman",   label: "Roman",   src: "/fonts/roman.png",   w: 60, h: 20 },
+] as const satisfies ReadonlyArray<{
+  value: EngravingFont;
+  label: string;
+  src: string;
+  w: number;
+  h: number;
+}>;
+
+export const RING_SIZES = Array.from({ length: 21 }, (_, i) => {
+  const value = 2 + i * 0.5; 
+  const mm = 41.5 + i * 2;   
+  return { value, label: `${value} (${mm.toFixed(1)}mm)` };
 });
 
 export const CARAT_RANGE = {
@@ -39,43 +56,19 @@ export const CARAT_RANGE = {
   max: 5,
   step: 0.25,
   default: 0.5,
-};
+} as const;
 
 export const RING_STYLES: {
   value: RingStyle;
   label: string;
   image: string;
 }[] = [
-  {
-    value: "plain",
-    label: "Plain",
-    image: "/ring-styles/plain.png",
-  },
-  {
-    value: "cathedral",
-    label: "Cathedral",
-    image: "/ring-styles/cathedral.png",
-  },
-  {
-    value: "knife",
-    label: "Knife Edge",
-    image: "/ring-styles/knife-edge.png",
-  },
-  {
-    value: "split",
-    label: "Split",
-    image: "/ring-styles/split.png",
-  },
-  {
-    value: "twisted",
-    label: "Twisted",
-    image: "/ring-styles/twisted.png",
-  },
-  {
-    value: "wide_plain",
-    label: "Wide Plain",
-    image: "/ring-styles/wide-plain.png",
-  },
+  { value: "plain",      label: "Plain",       image: "/ring-styles/plain.png" },
+  { value: "cathedral",  label: "Cathedral",   image: "/ring-styles/cathedral.png" },
+  { value: "knife",      label: "Knife Edge",  image: "/ring-styles/knife-edge.png" },
+  { value: "split",      label: "Split",       image: "/ring-styles/split.png" },
+  { value: "twisted",    label: "Twisted",     image: "/ring-styles/twisted.png" },
+  { value: "wide_plain", label: "Wide Plain",  image: "/ring-styles/wide-plain.png" },
 ];
 
 export const METAL_TYPES: {
