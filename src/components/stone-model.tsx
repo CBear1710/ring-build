@@ -2,13 +2,12 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { MeshRefractionMaterial } from "@react-three/drei";
+import { createPortal, useThree } from "@react-three/fiber";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Group, Mesh, Object3D } from "three";
 import { GLTFLoader, OBJLoader } from "three-stdlib";
-import { createPortal, useThree } from "@react-three/fiber";
-import { MeshRefractionMaterial } from "@react-three/drei";
-import { useConfigStore } from "@/store/configurator";
 
 // ----------------- MODEL SOURCES -----------------
 const SHAPE_TO_SRC = {
@@ -22,7 +21,7 @@ const SHAPE_TO_SRC = {
   marquise: "/models/marquise.obj",
   heart: "/models/heart.obj",
   asscher: "/models/asscher.obj",
-} as const;
+};
 
 type ShapeKey = keyof typeof SHAPE_TO_SRC;
 
@@ -72,7 +71,11 @@ function normalizeStoneToGirdle(node: Object3D) {
   node.updateMatrixWorld(true);
 }
 
-function applyTemplateSizing(content: Object3D, shape: ShapeKey, carat: number) {
+function applyTemplateSizing(
+  content: Object3D,
+  shape: ShapeKey,
+  carat: number
+) {
   const { base, pos } = TEMPLATE_BASE[shape];
   const r = gainFromCaratDiscrete(carat);
   const [bx, by, bz] = base;
@@ -82,11 +85,14 @@ function applyTemplateSizing(content: Object3D, shape: ShapeKey, carat: number) 
 }
 
 // ----------------- MAIN COMPONENT -----------------
-export default function StoneModel() {
-  const shape = useConfigStore((s) => s.shape);
-  const carat = useConfigStore((s) => s.carat);
-
-  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);
+export default function StoneModel({
+  shape,
+  carat,
+}: {
+  shape: any;
+  carat: any;
+}) {
+  const url = useMemo(() => SHAPE_TO_SRC[shape as ShapeKey], [shape]);
   const { scene } = useThree();
 
   const wrapper = useRef<Group | null>(null);

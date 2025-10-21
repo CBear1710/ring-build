@@ -228,8 +228,8 @@ function SceneContent() {
           <HeadModel shape={shape as any} carat={carat} metal={metal as any} />
         </group>
 
-        <group ref={stoneG}>
-          <StoneModel />
+        <group ref={stoneG} >
+          <StoneModel shape={shape as any} carat={carat} />
         </group>
       </group>
 

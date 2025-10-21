@@ -80,7 +80,7 @@ export default function RingConfiguratorClient() {
                   <div className="flex flex-col md:flex-row gap-5 md:gap-3">
                     <Button
                       onClick={handleNext}
-                      className="md:flex-1 h-11 bg-[#0313B0] text-white text-sm font-bold uppercase hover:bg-[#0313B0] hover:opacity-90"
+                      className="cursor-pointer md:flex-1 h-11 bg-[#0313B0] text-white text-sm font-bold uppercase hover:bg-[#0313B0] hover:opacity-90"
                       size="lg"
                     >
                       {getActionButtonText()}
