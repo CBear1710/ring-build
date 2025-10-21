@@ -10,6 +10,7 @@ import { ViewProvider } from "@/components/view-context";
 import Viewer from "@/components/viewer";
 import type { RingConfiguration } from "@/lib/ring-configurator/types";
 import { useState } from "react";
+import { DetailsModal } from "../details-modal";
 import UrlSync from "../url-sync";
 import { ShareActions } from "./share-actions";
 
@@ -32,9 +33,13 @@ const DEFAULT_CONFIG: RingConfiguration = {
 export default function RingConfiguratorClient() {
   const [currentStep, setCurrentStep] = useState(1);
 
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+
   const handleNext = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
+    } else {
+      setOpenDetailsModal(true);
     }
   };
 
@@ -95,6 +100,11 @@ export default function RingConfiguratorClient() {
             </div>
           </div>
         </div>
+
+        <DetailsModal
+          open={openDetailsModal}
+          onClose={() => setOpenDetailsModal(false)}
+        />
       </ViewProvider>
     </div>
   );

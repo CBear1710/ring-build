@@ -1,8 +1,9 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useMemo, useState } from "react";
 import { useConfigStore } from "@/store/configurator";
+import { useMemo, useState } from "react";
+import { ShareActions } from "./ring-configurator/share-actions";
 
 type Props = { className?: string };
 
@@ -12,7 +13,9 @@ type EngravingFontKey = (typeof FONT_KEYS)[number];
 
 function asFontKey(x: unknown): EngravingFontKey {
   const s = String(x ?? "").toLowerCase();
-  return (FONT_KEYS as readonly string[]).includes(s) ? (s as EngravingFontKey) : "regular";
+  return (FONT_KEYS as readonly string[]).includes(s)
+    ? (s as EngravingFontKey)
+    : "regular";
 }
 
 function prettyFontLabel(k: EngravingFontKey) {
@@ -67,8 +70,10 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
-  const engravingFontRaw = useConfigStore((s: any) => s.engravingFont ?? "regular");
-  const engravingFontKey = asFontKey(engravingFontRaw);      // for URL / logic
+  const engravingFontRaw = useConfigStore(
+    (s: any) => s.engravingFont ?? "regular"
+  );
+  const engravingFontKey = asFontKey(engravingFontRaw); // for URL / logic
   const engravingFontLabel = prettyFontLabel(engravingFontKey); // for UI
 
   // Parse ring size
@@ -90,13 +95,15 @@ export default function SummaryPanel({ className = "" }: Props) {
       style: String(style ?? ""),
       metal: String(metal ?? ""),
       purity: purity != null ? String(purity) : "",
-      size: ringSizeNum != null ? String(ringSizeNum) : "",  // canonical
+      size: ringSizeNum != null ? String(ringSizeNum) : "", // canonical
       shape: String(shape ?? ""),
       carat: String(carat ?? ""),
       engraving: String(engravingText ?? ""),
-      font: engravingFontKey,                                 // canonical, normalized
+      font: engravingFontKey, // canonical, normalized
     });
-    const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    const shareUrl = `${window.location.origin}${
+      window.location.pathname
+    }?${params.toString()}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
       shareUrl
     )}`;
@@ -130,7 +137,9 @@ export default function SummaryPanel({ className = "" }: Props) {
     const width =
       window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
     const height =
-      window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
+      window.innerHeight ??
+      document.documentElement.clientHeight ??
+      screen.height;
     const left = dualScreenLeft + (width - w) / 2;
     const top = dualScreenTop + (height - h) / 2;
     const features =
@@ -220,15 +229,7 @@ export default function SummaryPanel({ className = "" }: Props) {
   ]);
 
   return (
-    <aside
-      className={[
-        "w-full mx-auto rounded-2xl border border-black/10 bg-white shadow-md p-3",
-        "sm:sticky sm:top-4 sm:mx-0 sm:p-4",
-        "sm:max-w-[320px] md:max-w-[340px] xl:max-w-[280px]",
-        "mb-4",
-        className,
-      ].join(" ")}
-    >
+    <aside className={["w-full mx-auto", className].join(" ")}>
       <div className="divide-y divide-black/5">
         {rows.map(({ group, items }) => (
           <section key={group} className="py-2 first:pt-0 last:pb-0">
@@ -244,7 +245,9 @@ export default function SummaryPanel({ className = "" }: Props) {
                         <dt className="text-xs sm:text-sm text-black">
                           {labelMap[k] ?? titleCase(k)}
                         </dt>
-                        <div className="text-xs sm:text-sm font-medium opacity-0">—</div>
+                        <div className="text-xs sm:text-sm font-medium opacity-0">
+                          —
+                        </div>
                       </div>
                       <dd
                         className={[
@@ -260,7 +263,10 @@ export default function SummaryPanel({ className = "" }: Props) {
                 }
 
                 return (
-                  <div key={k} className="flex items-start justify-between gap-3">
+                  <div
+                    key={k}
+                    className="flex items-start justify-between gap-3"
+                  >
                     <dt className="text-xs sm:text-sm text-black">
                       {labelMap[k] ?? titleCase(k)}
                     </dt>
@@ -276,31 +282,7 @@ export default function SummaryPanel({ className = "" }: Props) {
       </div>
 
       <div className="mt-4 flex justify-center gap-2">
-        <button
-          type="button"
-          onClick={copyLink}
-          className="inline-flex items-center gap-2 rounded-lg border border-black/10 px-4 py-2 text-sm hover:bg-black/5 active:scale-[0.98] transition"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
-            <path
-              d="M3 8a5 5 0 0 1 5-5h3v2H8a3 3 0 1 0 0 6h3v2H8A5 5 0 0 1 3 8Zm8 5h5a5 5 0 1 1 0 10h-5v-2h5a3 3 0 1 0 0-6h-5v-2Zm6-9a3 3 0 0 1 0 6h-5V8h5a1 1 0 0 0 0-2h-5V4h5Z"
-              fill="currentColor"
-            />
-          </svg>
-          {copied ? "Copied!" : "Copy Link"}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleShareFacebook}
-          className="inline-flex items-center gap-2 rounded-lg border border-[#1877F2]/20 px-4 py-2 text-sm text-[#1877F2] hover:bg-[#1877F2]/10 active:scale-[0.98] transition"
-          title="Share on Facebook"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2" aria-hidden>
-            <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.7V12h2.7V9.8c0-2.7 1.6-4.2 4-4.2 1.2 0 2.5.2 2.5.2v2.7h-1.4c-1.4 0-1.9.9-1.9 1.8V12h3.2l-.5 2.9h-2.7v7A10 10 0 0 0 22 12z"/>
-          </svg>
-          Share
-        </button>
+        <ShareActions />
       </div>
     </aside>
   );
