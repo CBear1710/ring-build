@@ -7,7 +7,6 @@ import { ShareActions } from "./ring-configurator/share-actions";
 
 type Props = { className?: string };
 
-// canonical engraving font keys we support
 const FONT_KEYS = ["regular", "script", "italics", "roman"] as const;
 type EngravingFontKey = (typeof FONT_KEYS)[number];
 
@@ -19,7 +18,6 @@ function asFontKey(x: unknown): EngravingFontKey {
 }
 
 function prettyFontLabel(k: EngravingFontKey) {
-  // Only "italics" needs special-casing for capitalization
   return k === "italics" ? "Italics" : k.charAt(0).toUpperCase() + k.slice(1);
 }
 
@@ -60,7 +58,6 @@ function metalLabel(
 }
 
 export default function SummaryPanel({ className = "" }: Props) {
-  // Base config
   const style = useConfigStore((s) => s.style);
   const metal = useConfigStore((s) => s.metal);
   const purity = useConfigStore((s) => s.purity as string | number | null);
@@ -68,15 +65,13 @@ export default function SummaryPanel({ className = "" }: Props) {
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
 
-  // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
   const engravingFontRaw = useConfigStore(
     (s: any) => s.engravingFont ?? "regular"
   );
-  const engravingFontKey = asFontKey(engravingFontRaw); // for URL / logic
-  const engravingFontLabel = prettyFontLabel(engravingFontKey); // for UI
+  const engravingFontKey = asFontKey(engravingFontRaw);
+  const engravingFontLabel = prettyFontLabel(engravingFontKey);
 
-  // Parse ring size
   const ringSizeNum =
     typeof ringSizeRaw === "number"
       ? ringSizeRaw
@@ -89,17 +84,16 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   const [copied, setCopied] = useState(false);
 
-  // ---------- Share / Copy helpers ----------
   function buildShareUrl() {
     const params = new URLSearchParams({
       style: String(style ?? ""),
       metal: String(metal ?? ""),
       purity: purity != null ? String(purity) : "",
-      size: ringSizeNum != null ? String(ringSizeNum) : "", // canonical
+      size: ringSizeNum != null ? String(ringSizeNum) : "",
       shape: String(shape ?? ""),
       carat: String(carat ?? ""),
       engraving: String(engravingText ?? ""),
-      font: engravingFontKey, // canonical, normalized
+      font: engravingFontKey,
     });
     const shareUrl = `${window.location.origin}${
       window.location.pathname
@@ -115,39 +109,8 @@ export default function SummaryPanel({ className = "" }: Props) {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        return true;
-      } catch {
-        return false;
-      }
+      return false;
     }
-  }
-
-  function openCenteredPopup(url: string, name: string, w = 600, h = 480) {
-    const dualScreenLeft = window.screenLeft ?? window.screenX ?? 0;
-    const dualScreenTop = window.screenTop ?? window.screenY ?? 0;
-    const width =
-      window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
-    const height =
-      window.innerHeight ??
-      document.documentElement.clientHeight ??
-      screen.height;
-    const left = dualScreenLeft + (width - w) / 2;
-    const top = dualScreenTop + (height - h) / 2;
-    const features =
-      `width=${w},height=${h},left=${left},top=${top},` +
-      `menubar=0,toolbar=0,status=0,location=0,scrollbars=1,resizable=1`;
-    const win = window.open(url, name, features);
-    win?.focus?.();
-    return win;
   }
 
   async function copyLink() {
@@ -157,16 +120,19 @@ export default function SummaryPanel({ className = "" }: Props) {
     if (ok) setTimeout(() => setCopied(false), 1200);
   }
 
+  function openCenteredPopup(url: string, name: string, w = 600, h = 480) {
+    const left = (window.innerWidth - w) / 2;
+    const top = (window.innerHeight - h) / 2;
+    const features = `width=${w},height=${h},left=${left},top=${top},menubar=0,toolbar=0,status=0,scrollbars=1,resizable=1`;
+    window.open(url, name, features)?.focus();
+  }
+
   async function handleShareFacebook(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     e.stopPropagation();
-    const { shareUrl, fbUrl } = buildShareUrl();
-    const ok = await copyToClipboard(shareUrl);
-    setCopied(ok);
-    if (ok) setTimeout(() => setCopied(false), 1200);
+    const { fbUrl } = buildShareUrl();
     openCenteredPopup(fbUrl, "fbshare");
   }
-  // -----------------------------------------
 
   const showEngraving = (engravingText ?? "").trim().length > 0;
 
@@ -230,24 +196,28 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   return (
     <aside className={["w-full mx-auto", className].join(" ")}>
+      {/* Underline directly under the external SUMMARY header */}
+      <div className="border-b border-black/60 mb-2" />
+
       <div className="divide-y divide-black/5">
         {rows.map(({ group, items }) => (
           <section key={group} className="py-2 first:pt-0 last:pb-0">
-            <div className="mb-1 text-xs sm:text-sm font-semibold tracking-wide text-black">
+            <div className="mb-1 text-xs sm:text-sm font-semibold tracking-wide text-black uppercase">
               {group}
             </div>
+
             <dl className="space-y-1 sm:space-y-1.5">
               {items.map(({ k, v }) => {
+                const underlineRow = k === "metal" || k === "carat"; // darker lines for these
+
                 if (k === "engraving") {
                   return (
                     <div key={k} className="w-full">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2">
                         <dt className="text-xs sm:text-sm text-black">
                           {labelMap[k] ?? titleCase(k)}
                         </dt>
-                        <div className="text-xs sm:text-sm font-medium opacity-0">
-                          —
-                        </div>
+                        <div className="text-xs sm:text-sm font-medium opacity-0">—</div>
                       </div>
                       <dd
                         className={[
@@ -265,12 +235,15 @@ export default function SummaryPanel({ className = "" }: Props) {
                 return (
                   <div
                     key={k}
-                    className="flex items-start justify-between gap-3"
+                    className={[
+                      "flex items-start justify-between gap-2",
+                      underlineRow ? "border-b border-black/60 pb-2" : "",
+                    ].join(" ")}
                   >
-                    <dt className="text-xs sm:text-sm text-black">
+                    <dt className="text-xs sm:text-sm text-black shrink-0">
                       {labelMap[k] ?? titleCase(k)}
                     </dt>
-                    <dd className="text-xs sm:text-sm font-medium text-black text-right overflow-hidden whitespace-nowrap text-ellipsis">
+                    <dd className="text-xs sm:text-sm font-medium text-black text-right overflow-hidden whitespace-nowrap text-ellipsis grow">
                       {v || "—"}
                     </dd>
                   </div>
