@@ -2,7 +2,7 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   BufferAttribute,
@@ -28,7 +28,6 @@ type ShapeKey =
 
 type Metal = "white" | "yellow" | "rose" | "platinum";
 
-/* ---------- GLB Sources ---------- */
 const HEAD_TO_SRC: Record<ShapeKey, string> = {
   round: "/models/ROUNDh.glb",
   princess: "/models/PRINCESS.glb",
@@ -42,7 +41,6 @@ const HEAD_TO_SRC: Record<ShapeKey, string> = {
   asscher: "/models/ASSCHER.glb",
 };
 
-/* ---------- Geometry Base Parameters ---------- */
 const STONE_BASE_XZ_MIN: Record<ShapeKey, number> = {
   round: 2.4,
   princess: 1.6,
@@ -67,9 +65,6 @@ const SEAT_ALPHA = -1.3;
 const HEAD_BASE_SCALE_XZ = 1.1;
 const HEAD_BASE_SCALE_Y = 1.0;
 
-const SEAT_BAND_FRAC = 0.2;
-
-/* ---------- Metal Tint ---------- */
 const METAL_TINT: Record<
   Metal,
   {
@@ -105,9 +100,7 @@ const METAL_TINT: Record<
   },
 };
 
-/* ---------- Utility Functions ---------- */
 type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
-
 function tintMetal(root: Object3D, metal: Metal) {
   const { color, roughness, metalness, envMapIntensity } = METAL_TINT[metal];
   root.traverse((o) => {
@@ -129,14 +122,14 @@ function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
   return Math.max(CARAT_MIN, Number(q.toFixed(2)));
 }
-
 function stoneGainFromCarat(carat: number) {
   const q = quantizeCarat(carat);
   const stepsFrom1 = Math.round((q - 1.0) / CARAT_STEP_SIZE);
   return stepsFrom1 * STONE_STEP_GAIN;
 }
 
-/* ---------- Normalization (align prongs to stone seat) ---------- */
+const SEAT_BAND_FRAC = 0.2;
+
 function normalizeHeadToSeat_bbox(child: Object3D) {
   const box = new THREE.Box3().setFromObject(child);
   if (!isFinite(box.min.x) || box.isEmpty()) return;
@@ -196,8 +189,16 @@ function normalizeHeadToSeat_slice(child: Object3D) {
     }
   });
 
-  const midX = found ? (minX + maxX) * 0.5 : (bbox.min.x + bbox.max.x) * 0.5;
-  const midZ = found ? (minZ + maxZ) * 0.5 : (bbox.min.z + bbox.max.z) * 0.5;
+  let midX: number, midZ: number;
+  if (found) {
+    midX = (minX + maxX) * 0.5;
+    midZ = (minZ + maxZ) * 0.5;
+  } else {
+    const c = new THREE.Vector3();
+    bbox.getCenter(c);
+    midX = c.x;
+    midZ = c.z;
+  }
 
   const seatWorld = new THREE.Vector3(midX, seatY_raw, midZ);
 
@@ -209,21 +210,23 @@ function normalizeHeadToSeat_slice(child: Object3D) {
   child.updateMatrixWorld(true);
 }
 
-/* ---------- Component ---------- */
 export default function HeadModel({
   shape,
   carat,
   metal,
+  onReady, // ← new
 }: {
   shape: ShapeKey;
   carat: number;
   metal: Metal;
+  onReady?: (wrapper: Group) => void; // ← new
 }) {
   const url = useMemo(() => HEAD_TO_SRC[shape], [shape]);
   const { scene } = useGLTF(url);
 
   const wrapper = useRef<Group | null>(null);
   const childRef = useRef<Object3D | null>(null);
+
   const baseYScaleRef = useRef<number>(1);
 
   const computeHeadXZ = (shapeKey: ShapeKey, caratVal: number) => {
@@ -237,22 +240,18 @@ export default function HeadModel({
     return Math.max(0.001, Math.min(xzUnclamped, maxAllowed));
   };
 
-  /* ✅ FIXED: ensure geometry alignment runs before paint */
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!wrapper.current) return;
 
-    // Remove old model
     if (childRef.current) {
       wrapper.current.remove(childRef.current);
       childRef.current = null;
     }
 
-    // Clone new one
     const child = scene.clone(true);
     wrapper.current.add(child);
     childRef.current = child;
 
-    // Mesh config
     child.traverse((o) => {
       const mesh = o as Mesh;
       if (mesh.isMesh) {
@@ -261,7 +260,6 @@ export default function HeadModel({
       }
     });
 
-    // Normalize to seat
     if (shape === "heart" || shape === "pear") {
       normalizeHeadToSeat_slice(child);
     } else {
@@ -277,16 +275,13 @@ export default function HeadModel({
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
 
-    // 🔄 Fallback for delayed geometry load
+    // 🔔 Tell parent the head wrapper is fully ready (next frame to ensure matrices are baked)
     requestAnimationFrame(() => {
-      if (!child.parent) return;
-      if (shape === "heart" || shape === "pear") {
-        normalizeHeadToSeat_slice(child);
-      } else {
-        normalizeHeadToSeat_bbox(child);
-      }
-      child.updateMatrixWorld(true);
+      if (!wrapper.current) return;
+      wrapper.current.updateWorldMatrix(true, true);
+      onReady?.(wrapper.current);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, url, shape]);
 
   useEffect(() => {
@@ -306,5 +301,4 @@ export default function HeadModel({
   return <group ref={wrapper} />;
 }
 
-/* ---------- Preload all GLBs ---------- */
 (Object.values(HEAD_TO_SRC) as string[]).forEach((p) => useGLTF.preload(p));

@@ -47,9 +47,13 @@ export const ENGRAVING_FONT_PREVIEWS = [
 }>;
 
 export const RING_SIZES = Array.from({ length: 21 }, (_, i) => {
-  const value = 2 + i * 0.5;
-  const mm = 41.5 + i * 2;
-  return { value, label: `${value} (${mm.toFixed(1)}mm)` };
+  const value = 2 + i * 0.5;        
+  const mm = 41.5 + i * 2;          
+  return {
+    value,
+    mm,                              
+    label: `${value} (${mm.toFixed(1)}mm)`,
+  };
 });
 
 export const CARAT_RANGE = {
@@ -75,7 +79,7 @@ export const RING_STYLES: {
 export const METAL_TYPES: {
   value: MetalType;
   label: string;
-  karat: Purity;      
+  karat: Purity;
   metal: Metal;
   backgroundColor: string;
 }[] = [
@@ -155,7 +159,7 @@ export const METAL_TYPES: {
     value: "platinum",
     label: "Platinum",
     metal: "platinum",
-    karat: null, 
+    karat: null,
     backgroundColor:
       "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },

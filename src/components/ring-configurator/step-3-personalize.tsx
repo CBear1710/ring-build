@@ -21,10 +21,6 @@ import {
 } from "@/lib/ring-configurator/constants";
 import { useConfigStore } from "@/store/configurator";
 
-function getSizeMM(size: number) {
-  return (11.63 + (size - 1) * 0.4 * 2.54).toFixed(1);
-}
-
 export function Step3Personalize() {
   const ringSize = useConfigStore((s) => s.ringSize);
   const engravingText = useConfigStore((s) => s.engravingText);
@@ -42,6 +38,9 @@ export function Step3Personalize() {
     setEngravingFontUrl(undefined);
   };
 
+  const sizeOpt = RING_SIZES.find((o) => o.value === ringSize);
+  const mm = sizeOpt?.mm;
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -56,12 +55,14 @@ export function Step3Personalize() {
         </Button>
       </div>
 
+      {/* Ring Size */}
       <div className="mt-5">
         <div className="flex items-center justify-between">
           <label className="text-base text-[#333]">
             Ring Size:{" "}
             <span className="font-bold">
-              {ringSize} ({getSizeMM(ringSize)}mm)
+              {ringSize}
+              {mm != null ? ` (${mm.toFixed(1)}mm)` : ""}
             </span>
           </label>
           <a
@@ -91,6 +92,7 @@ export function Step3Personalize() {
         </Select>
       </div>
 
+      {/* Engraving text */}
       <div className="mt-5">
         <div className="flex items-center">
           <label className="min-w-[133px] text-[#333]">Engraving:</label>
@@ -113,6 +115,7 @@ export function Step3Personalize() {
         </div>
       </div>
 
+      {/* Engraving fonts (image buttons) */}
       <div className="mt-5">
         <div className="grid grid-cols-2 gap-3">
           {ENGRAVING_FONT_PREVIEWS.map((f) => {
