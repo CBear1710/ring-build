@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useConfigStore } from "@/store/configurator";
 import { ShareActions } from "./ring-configurator/share-actions";
 import { RING_SIZES } from "@/lib/ring-configurator/constants";
@@ -17,6 +17,7 @@ function asFontKey(x: unknown): EngravingFontKey {
     ? (s as EngravingFontKey)
     : "regular";
 }
+
 function prettyFontLabel(k: EngravingFontKey) {
   return k === "italics" ? "Italics" : k.charAt(0).toUpperCase() + k.slice(1);
 }
@@ -37,9 +38,11 @@ const metalName: Record<string, string> = {
   rose: "Rose Gold",
   platinum: "Platinum",
 };
+
 function titleCase(s: string) {
   return s.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
+
 function metalLabel(
   metal: string | undefined,
   purity: string | number | null | undefined
@@ -51,7 +54,6 @@ function metalLabel(
 }
 
 export default function SummaryPanel({ className = "" }: Props) {
-  // Base config
   const style = useConfigStore((s) => s.style);
   const metal = useConfigStore((s) => s.metal);
   const purity = useConfigStore((s) => s.purity as string | number | null);
@@ -59,7 +61,6 @@ export default function SummaryPanel({ className = "" }: Props) {
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
 
-  // Engraving
   const engravingText = useConfigStore((s: any) => s.engravingText ?? "");
   const engravingFontRaw = useConfigStore(
     (s: any) => s.engravingFont ?? "regular"
@@ -75,9 +76,7 @@ export default function SummaryPanel({ className = "" }: Props) {
       : undefined;
 
   const sizeOpt = RING_SIZES.find((o) => o.value === ringSizeNum);
-  const ringSizeMM = sizeOpt?.mm; 
-
-  const [copied, setCopied] = useState(false);
+  const ringSizeMM = sizeOpt?.mm;
 
   const showEngraving = (engravingText ?? "").trim().length > 0;
 
@@ -142,46 +141,37 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   return (
     <aside className={["w-full mx-auto", className].join(" ")}>
-      <div className="divide-y divide-black/5">
+      <div className="border-b border-black/60 mb-2" />
+
+      <div>
         {rows.map(({ group, items }) => (
-          <section key={group} className="py-2 first:pt-0 last:pb-0">
-            <div className="mb-1 text-xs sm:text-sm font-semibold tracking-wide text-black">
-              {group}
+          <section key={group} className="py-3 first:pt-0 last:pb-0">
+            <div className="mb-2">
+              <div className="text-xs sm:text-sm font-semibold tracking-wide text-black uppercase">
+                {group}
+              </div>
             </div>
+
             <dl className="space-y-1 sm:space-y-1.5">
               {items.map(({ k, v }) => {
-                if (k === "engraving") {
-                  return (
-                    <div key={k} className="w-full">
-                      <div className="flex items-start justify-between gap-3">
-                        <dt className="text-xs sm:text-sm text-black">
-                          {labelMap[k] ?? titleCase(k)}
-                        </dt>
-                        <div className="text-xs sm:text-sm font-medium opacity-0">
-                          —
-                        </div>
-                      </div>
-                      <dd
-                        className={[
-                          "mt-0.5 text-xs sm:text-sm font-medium text-black",
-                          "text-right whitespace-normal break-all",
-                        ].join(" ")}
-                        title={typeof v === "string" ? v : undefined}
-                      >
-                        {String(v)}
-                      </dd>
-                    </div>
-                  );
-                }
                 return (
                   <div
                     key={k}
-                    className="flex items-start justify-between gap-3"
+                    className="flex items-start justify-between gap-2"
                   >
-                    <dt className="text-xs sm:text-sm text-black">
+                    <dt className="text-xs sm:text-sm text-black shrink-0">
                       {labelMap[k] ?? titleCase(k)}
                     </dt>
-                    <dd className="text-xs sm:text-sm font-medium text-black text-right overflow-hidden whitespace-nowrap text-ellipsis">
+                    <dd
+                      className={[
+                        "text-xs sm:text-sm font-medium text-black text-right",
+                        "whitespace-normal break-words",
+                        "overflow-hidden",
+                      ].join(" ")}
+                      title={
+                        typeof v === "string" ? (v.length > 0 ? v : undefined) : undefined
+                      }
+                    >
                       {v || "—"}
                     </dd>
                   </div>
