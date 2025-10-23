@@ -62,7 +62,7 @@ export default function RingConfiguratorClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
+    <div className="min-h-screen">
       <UrlSync />
 
       <ViewProvider>
@@ -88,7 +88,9 @@ export default function RingConfiguratorClient() {
 
                   {currentStep === 2 && <Step2Stone onReset={handleReset} />}
 
-                  {currentStep === 3 && <Step3Personalize onReset={handleReset} />}
+                  {currentStep === 3 && (
+                    <Step3Personalize onReset={handleReset} />
+                  )}
                 </div>
 
                 <div className="mt-7 md:mt-10">
