@@ -39,7 +39,7 @@ const VISIBILITY_MODE = "BRIGHT" as "BRIGHT" | "PRODUCTION";
 const SHOW_DEBUG_WIREFRAME = false;
 
 const ENGRAVING_ROTATION: [number, number, number] = [0, Math.PI, 0];
-const ENGRAVING_SCALE: [number, number, number] = [-1, 1, 1]; // keep as-is
+const ENGRAVING_SCALE: [number, number, number] = [-1, 1, 1];
 
 export default function EngravingModel({ sourceMesh }: Props) {
   const rootRef = useRef<THREE.Group>(null!);
@@ -51,18 +51,31 @@ export default function EngravingModel({ sourceMesh }: Props) {
   const rules = styleTextureRules[style] ?? styleTextureRules.plain;
   const localYShift = verticalOffsetByStyle[style] ?? 0;
 
-  const { gl } = useThree();
+  const { gl, invalidate } = useThree();
 
-  useFrame(() => {
+  // --- Initial sync so it’s correct BEFORE first interaction (important on frameloop="demand")
+  useEffect(() => {
     if (!rootRef.current || !sourceMesh) return;
-    rootRef.current.matrixAutoUpdate = false;
+    // copy world matrix once
     rootRef.current.matrix.copy(sourceMesh.matrixWorld);
     rootRef.current.matrix.decompose(
       rootRef.current.position,
       rootRef.current.quaternion,
       rootRef.current.scale
     );
-    rootRef.current.matrixAutoUpdate = true;
+    // ensure a paint happens even on demand-loop canvases
+    invalidate();
+  }, [sourceMesh, style, engravingText, invalidate]);
+
+  // --- Continuous sync every frame (keeps it glued during camera/orbit updates)
+  useFrame(() => {
+    if (!rootRef.current || !sourceMesh) return;
+    rootRef.current.matrix.copy(sourceMesh.matrixWorld);
+    rootRef.current.matrix.decompose(
+      rootRef.current.position,
+      rootRef.current.quaternion,
+      rootRef.current.scale
+    );
   });
 
   const fontFamily = useMemo(() => {
@@ -154,7 +167,7 @@ export default function EngravingModel({ sourceMesh }: Props) {
               transparent
               alphaTest={0.02}
               side={THREE.BackSide}
-              depthTest               
+              depthTest
               depthWrite={false}
               toneMapped={false}
               polygonOffset
