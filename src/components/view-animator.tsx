@@ -17,7 +17,7 @@ const DIRS: Record<string, THREE.Vector3> = {
 
 export default function ViewAnimator() {
   const { camera, invalidate } = useThree();
-  const { view, setView, view360, controls, setView360 } = useView();
+  const { view, setView, view360, controls } = useView();
 
   const rafRef = useRef<number | null>(null);
   const lastViewRef = useRef<keyof typeof DIRS | "custom">("perspective");
@@ -25,14 +25,8 @@ export default function ViewAnimator() {
   // detect manual control use
   useEffect(() => {
     const c = controls;
-
     if (!c) return;
-
-    const onStart = () => {
-      setView("custom");
-      setView360(false);
-    };
-
+    const onStart = () => setView("custom");
     c.addEventListener?.("start", onStart);
     return () => c?.removeEventListener?.("start", onStart);
   }, [controls, setView]);
