@@ -12,7 +12,6 @@ import {
 import { RotateCcw } from "lucide-react";
 import Image from "next/image";
 
-import type { EngravingFont } from "@/lib/engraving-fonts";
 import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
 import {
   ENGRAVING_FONT_PREVIEWS,
@@ -21,7 +20,11 @@ import {
 } from "@/lib/ring-configurator/constants";
 import { useConfigStore } from "@/store/configurator";
 
-export function Step3Personalize() {
+interface Step3PersonalizeProps {
+  onReset: () => void;
+}
+
+export function Step3Personalize({ onReset }: Step3PersonalizeProps) {
   const ringSize = useConfigStore((s) => s.ringSize);
   const engravingText = useConfigStore((s) => s.engravingText);
   const engravingFont = useConfigStore((s) => s.engravingFont);
@@ -30,13 +33,6 @@ export function Step3Personalize() {
   const setEngravingText = useConfigStore((s) => s.setEngravingText);
   const setEngravingFont = useConfigStore((s) => s.setEngravingFont);
   const setEngravingFontUrl = useConfigStore((s) => s.setEngravingFontUrl);
-
-  const handleReset = () => {
-    setRingSize(2);
-    setEngravingText("");
-    setEngravingFont("regular" as EngravingFont);
-    setEngravingFontUrl(undefined);
-  };
 
   const sizeOpt = RING_SIZES.find((o) => o.value === ringSize);
   const mm = sizeOpt?.mm;
@@ -48,7 +44,7 @@ export function Step3Personalize() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleReset}
+          onClick={onReset}
           className="rounded-none text-sm text-black gap-2 bg-transparent border-[#ddd] hover:bg-transparent hover:opacity-90"
         >
           Reset <RotateCcw className="h-4 w-4" />

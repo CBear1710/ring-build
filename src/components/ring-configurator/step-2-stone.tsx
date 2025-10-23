@@ -34,17 +34,16 @@ function fracFromValue(v: number) {
   return (v - MIN) / (MAX - MIN);
 }
 
-export function Step2Stone() {
+interface Step2StoneProps {
+  onReset: () => void;
+}
+
+export function Step2Stone({ onReset }: Step2StoneProps) {
   const shape = useConfigStore((s) => s.shape);
   const carat = useConfigStore((s) => s.carat);
 
   const setShape = useConfigStore((s) => s.setShape);
   const setCarat = useConfigStore((s) => s.setCarat);
-
-  const handleReset = () => {
-    setShape("round");
-    setCarat(0.5);
-  };
 
   /** ==== Old slider measurements/state ==== */
   const railRef = useRef<HTMLDivElement | null>(null);
@@ -136,7 +135,7 @@ export function Step2Stone() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleReset}
+          onClick={onReset}
           className="rounded-none text-sm text-black gap-2 bg-transparent border-[#ddd] hover:bg-transparent hover:opacity-90"
         >
           Reset <RotateCcw className="h-4 w-4" />

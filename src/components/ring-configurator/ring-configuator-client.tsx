@@ -8,6 +8,7 @@ import { ViewControl } from "@/components/ring-configurator/view-control";
 import { Button } from "@/components/ui/button";
 import { ViewProvider } from "@/components/view-context";
 import Viewer from "@/components/viewer";
+import { useConfigStore } from "@/store/configurator";
 import { useState } from "react";
 import { DetailsModal } from "../details-modal";
 import UrlSync from "../url-sync";
@@ -24,6 +25,16 @@ export default function RingConfiguratorClient() {
 
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
 
+  const setStyle = useConfigStore((s) => s.setStyle);
+  const setMetal = useConfigStore((s) => s.setMetal);
+  const setPurity = useConfigStore((s) => s.setPurity);
+  const setShape = useConfigStore((s) => s.setShape);
+  const setCarat = useConfigStore((s) => s.setCarat);
+  const setRingSize = useConfigStore((s) => s.setRingSize);
+  const setEngravingText = useConfigStore((s) => s.setEngravingText);
+  const setEngravingFont = useConfigStore((s) => s.setEngravingFont);
+  const setEngravingFontUrl = useConfigStore((s) => s.setEngravingFontUrl);
+
   const handleNext = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
@@ -36,6 +47,18 @@ export default function RingConfiguratorClient() {
     if (currentStep === 1) return "SELECT STONE →";
     if (currentStep === 2) return "PERSONALIZE →";
     return "VIEW DETAIL";
+  };
+
+  const handleReset = () => {
+    setStyle("plain");
+    setMetal("white");
+    setPurity("18k");
+    setRingSize(2);
+    setEngravingText("");
+    setEngravingFont("regular");
+    setEngravingFontUrl(undefined);
+    setShape("round");
+    setCarat(0.5);
   };
 
   return (
@@ -61,11 +84,11 @@ export default function RingConfiguratorClient() {
             <div className="flex-1 px-[15px] md:px-10 lg:px-0">
               <div className="flex flex-col">
                 <div className="flex-1">
-                  {currentStep === 1 && <Step1Setting />}
+                  {currentStep === 1 && <Step1Setting onReset={handleReset} />}
 
-                  {currentStep === 2 && <Step2Stone />}
+                  {currentStep === 2 && <Step2Stone onReset={handleReset} />}
 
-                  {currentStep === 3 && <Step3Personalize />}
+                  {currentStep === 3 && <Step3Personalize onReset={handleReset} />}
                 </div>
 
                 <div className="mt-7 md:mt-10">
