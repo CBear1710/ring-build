@@ -8,7 +8,6 @@ import { ViewControl } from "@/components/ring-configurator/view-control";
 import { Button } from "@/components/ui/button";
 import { ViewProvider } from "@/components/view-context";
 import Viewer from "@/components/viewer";
-import type { RingConfiguration } from "@/lib/ring-configurator/types";
 import { useState } from "react";
 import { DetailsModal } from "../details-modal";
 import UrlSync from "../url-sync";
@@ -19,16 +18,6 @@ const STEPS = [
   { number: 2, label: "Stone" },
   { number: 3, label: "Personalize" },
 ];
-
-const DEFAULT_CONFIG: RingConfiguration = {
-  style: "plain",
-  metal: "18k-white",
-  shape: "round",
-  carat: 0.5,
-  size: 2,
-  engraving: "",
-  engravingFont: "regular",
-};
 
 export default function RingConfiguratorClient() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -48,8 +37,6 @@ export default function RingConfiguratorClient() {
     if (currentStep === 2) return "PERSONALIZE →";
     return "VIEW DETAIL";
   };
-
-  // Share, Facebook
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] lg:py-16">
