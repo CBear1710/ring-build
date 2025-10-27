@@ -1,14 +1,16 @@
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { disposeObject3D } from "@/lib/utils/three-dispose";
+import { MeshRefractionMaterial } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Group, Material, Mesh, Object3D } from "three";
+import { BufferGeometry, Group, Material, Mesh, Object3D } from "three";
 import { GLTFLoader, OBJLoader } from "three-stdlib";
+import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-// ----------------- MODEL SOURCES -----------------
+/* ----------------- MODEL SOURCES ----------------- */
 const SHAPE_TO_SRC = {
   round: "/models/Rounds.glb",
   princess: "/models/princess.obj",
@@ -20,10 +22,10 @@ const SHAPE_TO_SRC = {
   marquise: "/models/marquise.obj",
   heart: "/models/heart.obj",
   asscher: "/models/asscher.obj",
-};
+} as const;
 type ShapeKey = keyof typeof SHAPE_TO_SRC;
 
-// ----------------- POSITION & SCALE TEMPLATES -----------------
+/* ----------------- SHAPE SIZING ----------------- */
 const TEMPLATE_BASE: Record<
   ShapeKey,
   { base: [number, number, number]; pos: [number, number, number] }
@@ -40,11 +42,10 @@ const TEMPLATE_BASE: Record<
   asscher: { base: [0.83, 0.83, 0.9], pos: [0, 0.8, 0] },
 };
 
-// ----------------- SCALING LOGIC -----------------
+/* ----------------- CARAT→SCALE ----------------- */
 const CARAT_STEP_SIZE = 0.25;
 const CARAT_MIN = 0.25;
 const STEP_GAIN = 0.017;
-
 function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
   return Math.max(CARAT_MIN, Number(q.toFixed(2)));
@@ -55,66 +56,59 @@ function gainFromCaratDiscrete(carat: number) {
   return stepsFrom1 * STEP_GAIN;
 }
 
-// ----------------- NORMALIZE / SIZING HELPERS -----------------
-function normalizeStoneToGirdle(node: Object3D) {
-  const bbox = new THREE.Box3().setFromObject(node);
-  if (!isFinite(bbox.min.x) || bbox.isEmpty()) return;
-  const centerW = new THREE.Vector3();
-  bbox.getCenter(centerW);
-  const parent = node.parent ?? node;
-  const centerLocal = centerW.clone();
-  parent.worldToLocal(centerLocal);
-  node.position.sub(centerLocal);
-  node.updateMatrixWorld(true);
-}
-function applyTemplateSizing(
-  content: Object3D,
-  shape: ShapeKey,
-  carat: number
-) {
+/* ----------------- HELPERS ----------------- */
+function applyTemplateSizing(node: Object3D, shape: ShapeKey, carat: number) {
   const { base, pos } = TEMPLATE_BASE[shape];
   const r = gainFromCaratDiscrete(carat);
   const [bx, by, bz] = base;
-  content.scale.set(bx + r, by, bz + r);
-  content.position.set(pos[0], pos[1], pos[2]);
-  content.updateMatrixWorld(true);
+  node.scale.set(bx + r, by, bz + r);
+  node.position.set(pos[0], pos[1], pos[2]);
+  node.updateMatrixWorld(true);
 }
 
-// ----------------- ENV/ANGLE CHECK -----------------
+/* ----------------- ANGLE/Metal detection ----------------- */
 function useIsAngleMetalChrome() {
-  const { gl } = useThree(); // Three.WebGLRenderer
+  const { gl } = useThree();
   const [bad, setBad] = useState(false);
-
   useEffect(() => {
     const isChrome =
       /Chrome/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
-
-    // Get actual WebGL context from renderer (correct API, correct type)
     const ctx =
-      (gl.getContext?.() as
-        | WebGL2RenderingContext
-        | WebGLRenderingContext
-        | null) ?? null;
-
+      (gl.getContext?.() as WebGL2RenderingContext | WebGLRenderingContext | null) ?? null;
     let rendererStr = "";
     if (ctx) {
       const ext = ctx.getExtension("WEBGL_debug_renderer_info") as any;
       if (ext) {
         try {
           rendererStr = ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
-        } catch {
-          /* ignore */
-        }
+        } catch {}
       }
     }
     const angleMetal = /Apple.*Metal/i.test(rendererStr);
     setBad(isChrome && angleMetal);
   }, [gl]);
-
   return bad;
 }
 
-// ----------------- MAIN COMPONENT -----------------
+/* ----------------- VISUAL ----------------- */
+const DIAMOND = {
+  COLOR: "#d9e7ff",
+  IOR: 2.44,
+  BOUNCES: 4,
+  ABERRATION: 0.01,
+  FRESNEL: 0.05,
+  TONE_MAPPED: true,
+  FAST_CHROMA: false,
+} as const;
+
+const FALLBACK = {
+  COLOR: "#d9e7ff",
+  METALNESS: 0.05,
+  ROUGHNESS: 0.12,
+  ENVMAP_INTENSITY: 1.0,
+} as const;
+
+/* ----------------- MAIN ----------------- */
 export default function StoneModel({
   shape,
   carat,
@@ -122,136 +116,125 @@ export default function StoneModel({
   shape: ShapeKey;
   carat: number;
 }) {
-  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);
-  const { scene } = useThree();
+  /* ——— fixed hook order starts ——— */
+  const { scene } = useThree();                                   // 1
+  const isAngleMetalChrome = useIsAngleMetalChrome();              // 2
+  const wrapper = useRef<Group | null>(null);                      // 3
+  const meshRef = useRef<Mesh | null>(null);                       // 4
+  const [geom, setGeom] = useState<BufferGeometry | null>(null);   // 5
 
-  const wrapper = useRef<Group | null>(null);
-  const contentRef = useRef<Object3D | null>(null);
-  const [meshes, setMeshes] = useState<Mesh[]>([]);
+  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);         // 6
+  const envTex = scene.environment as THREE.Texture | null;        // 7
+  const diamondColor = useMemo(() => new THREE.Color(DIAMOND.COLOR), []); // 8
+  const fallbackMat = useMemo(                                     // 9
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(FALLBACK.COLOR),
+        metalness: FALLBACK.METALNESS,
+        roughness: FALLBACK.ROUGHNESS,
+        envMap: envTex ?? null,
+        envMapIntensity: FALLBACK.ENVMAP_INTENSITY,
+      }),
+    [envTex]
+  );
+  useEffect(() => () => fallbackMat.dispose(), [fallbackMat]);     // 10
+  /* ——— fixed hook order ends ——— */
 
-  const envTex = scene.environment as THREE.Texture | null;
-  const isAngleMetalChrome = useIsAngleMetalChrome();
+  const canRefract = !!envTex && !isAngleMetalChrome;
 
-  // Enable/disable refraction based on environment (Chrome + ANGLE/Metal => disable)
-  const ENABLE_REFRACTION = !isAngleMetalChrome;
-
-  // Shared Physical Material (transmission) for the stone
-  const sharedPhysicalMat = useMemo(() => {
-    const m = new THREE.MeshPhysicalMaterial({
-      transmission: 1,
-      thickness: 0.6,
-      roughness: 0.02,
-      metalness: 0,
-      ior: 2.44,
-      specularIntensity: 1,
-      attenuationColor: new THREE.Color("#d9e7ff"),
-      attenuationDistance: 0.6,
-      toneMapped: true,
-      envMapIntensity: 1.0,
-    });
-    if (envTex) m.envMap = envTex;
-    return m;
-  }, [envTex]);
-
-  // Load/reload stone when shape changes
+  // load & merge geometry (single indexed, centered, single draw range)
   useEffect(() => {
-    if (!wrapper.current) return;
     let aborted = false;
 
-    // Clear old
-    if (contentRef.current) {
-      disposeObject3D(contentRef.current);
-      wrapper.current.remove(contentRef.current);
-      contentRef.current = null;
-      setMeshes([]);
-    }
+    setGeom((g) => {
+      g?.dispose?.();
+      return null;
+    });
 
-    const applyLoaded = (loadedRoot: Object3D) => {
-      if (aborted || !wrapper.current) return;
+    const applyLoaded = (root: Object3D) => {
+      if (aborted) return;
 
-      const loaded = loadedRoot; // avoid clone(true) if not needed
-      loaded.traverse((o) => ((o as any).matrixAutoUpdate = true));
-
-      const content = new THREE.Group();
-      content.name = "StoneContent";
-      content.add(loaded);
-      content.layers.enable(1);
-      wrapper.current.add(content);
-      contentRef.current = content;
-
-      const list: Mesh[] = [];
-      content.traverse((o) => {
-        const mm = o as Mesh;
-        if (mm.isMesh) {
-          mm.castShadow = false;
-          mm.receiveShadow = false;
-          mm.layers.enable(1);
-          list.push(mm);
+      const geos: BufferGeometry[] = [];
+      root.updateMatrixWorld(true);
+      root.traverse((o) => {
+        const m = o as Mesh;
+        if ((m as any).isMesh && m.geometry) {
+          const g = m.geometry.clone();
+          g.applyMatrix4(m.matrixWorld);
+          geos.push(g);
         }
       });
 
-      // Assign material: dispose old material (Material | Material[])
-      list.forEach((mesh) => {
-        const prev: Material | Material[] | undefined = mesh.material as any;
-        if (Array.isArray(prev)) {
-          prev.forEach((mat) => mat?.dispose?.());
-        } else {
-          prev?.dispose?.();
-        }
+      let merged = BufferGeometryUtils.mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
 
-        // In this version, use PhysicalMaterial for safety.
-        // If really need refraction shader: create a single instance and share.
-        mesh.material = sharedPhysicalMat;
-      });
+      if (!merged.getIndex()) merged = BufferGeometryUtils.mergeVertices(merged, 1e-4);
+      merged.clearGroups();
+      const index = merged.getIndex();
+      const count = index ? index.count : merged.attributes.position.count;
+      merged.setDrawRange(0, count);
 
-      setMeshes(list);
+      merged.computeBoundingBox();
+      const center = new THREE.Vector3();
+      merged.boundingBox!.getCenter(center);
+      merged.translate(-center.x, -center.y, -center.z);
+      merged.computeVertexNormals();
 
-      normalizeStoneToGirdle(content);
-      applyTemplateSizing(content, shape, carat);
+      setGeom(merged);
     };
 
-    const isGLB = url.toLowerCase().endsWith(".glb");
-    if (isGLB) {
-      const loader = new GLTFLoader();
-      loader.load(
+    if (url.toLowerCase().endsWith(".glb")) {
+      new GLTFLoader().load(
         url,
-        (gltf) => {
-          applyLoaded(
-            (gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D
-          );
-        },
+        (gltf) => applyLoaded((gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D),
         undefined,
         () => {}
       );
     } else {
-      const loader = new OBJLoader();
-      loader.load(url, (obj) => applyLoaded(obj));
+      new OBJLoader().load(url, (obj) => applyLoaded(obj));
     }
 
     return () => {
       aborted = true;
-      if (wrapper.current && contentRef.current) {
-        disposeObject3D(contentRef.current);
-        wrapper.current.remove(contentRef.current);
-        contentRef.current = null;
-        setMeshes([]);
-      }
     };
-  }, [url, shape, carat, ENABLE_REFRACTION, sharedPhysicalMat]);
+  }, [url]);
 
-  // Re-apply scale when carat changes
+  // apply sizing on wrapper (always runs; no early return)
   useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
-    applyTemplateSizing(content, shape, carat);
-  }, [carat, shape]);
+    if (!wrapper.current) return;
+    applyTemplateSizing(wrapper.current, shape, carat);
+  }, [shape, carat]);
 
-  // Cleanup shared material when unmount
-  useEffect(() => {
-    return () => {
-      sharedPhysicalMat?.dispose?.();
-    };
-  }, [sharedPhysicalMat]);
+  // set mesh flags via ref (no hooks)
+  const meshRefCb = (m: Mesh | null) => {
+    meshRef.current = m;
+    if (m) {
+      m.frustumCulled = false;
+      m.layers.enable(1);
+    }
+  };
 
-  return <group ref={wrapper} />;
+  return (
+    <group ref={wrapper}>
+      {geom ? (
+        <mesh ref={meshRefCb} geometry={geom}>
+          {canRefract ? (
+            <MeshRefractionMaterial
+              envMap={envTex!}
+              color={diamondColor}
+              ior={DIAMOND.IOR}
+              bounces={DIAMOND.BOUNCES}
+              aberrationStrength={DIAMOND.ABERRATION}
+              fresnel={DIAMOND.FRESNEL}
+              toneMapped={DIAMOND.TONE_MAPPED}
+              fastChroma={DIAMOND.FAST_CHROMA}
+              transparent
+            />
+          ) : (
+            <primitive object={fallbackMat} attach="material" />
+          )}
+        </mesh>
+      ) : null}
+    </group>
+  );
 }
