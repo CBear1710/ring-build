@@ -31,14 +31,14 @@ const TEMPLATE_BASE: Record<
   { base: [number, number, number]; pos: [number, number, number] }
 > = {
   round: { base: [2.4, 2.4, 2.4], pos: [0, 0.8, 0] },
-  princess: { base: [1.03, 1.03, 1.0], pos: [0, 0.8, 0] },
-  cushion: { base: [0.9, 1.05, 0.9], pos: [0, 0.8, 0] },
-  oval: { base: [0.9, 1.2, 1.15], pos: [0, 1.0, 0] },
-  radiant: { base: [1.75, 1.95, 1.9], pos: [-0.1, 0.8, 0] },
-  pear: { base: [0.95, 0.85, 1.0], pos: [0, 1.05, -0.9] },
+  princess: { base: [1.03, 1.03, 1.0], pos: [0, 0.5, 0] },
+  cushion: { base: [0.9, 1.05, 0.9], pos: [0, 0.6, 0] },
+  oval: { base: [0.9, 1.2, 1.15], pos: [0, 0.6, 0] },
+  radiant: { base: [1.75, 1.95, 1.9], pos: [-0.1, 0.6, 0] },
+  pear: { base: [0.95, 0.85, 1.0], pos: [0, 0.7, -0.5] },
   emerald: { base: [1.05, 0.95, 1.1], pos: [0, 0.8, 0] },
-  marquise: { base: [1.05, 1.05, 0.9], pos: [0, 1.1, 0] },
-  heart: { base: [0.75, 0.95, 0.7], pos: [0, 1.2, -0.6] },
+  marquise: { base: [1.05, 1.05, 0.9], pos: [0, 0.7, 0] },
+  heart: { base: [0.75, 0.95, 0.7], pos: [0, 0.8, 0] },
   asscher: { base: [0.83, 0.83, 0.9], pos: [0, 0.8, 0] },
 };
 
@@ -117,16 +117,16 @@ export default function StoneModel({
   carat: number;
 }) {
   /* ——— fixed hook order starts ——— */
-  const { scene } = useThree();                                   // 1
-  const isAngleMetalChrome = useIsAngleMetalChrome();              // 2
-  const wrapper = useRef<Group | null>(null);                      // 3
-  const meshRef = useRef<Mesh | null>(null);                       // 4
-  const [geom, setGeom] = useState<BufferGeometry | null>(null);   // 5
+  const { scene } = useThree();                                   
+  const isAngleMetalChrome = useIsAngleMetalChrome();              
+  const wrapper = useRef<Group | null>(null);                      
+  const meshRef = useRef<Mesh | null>(null);                       
+  const [geom, setGeom] = useState<BufferGeometry | null>(null);   
 
-  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);         // 6
-  const envTex = scene.environment as THREE.Texture | null;        // 7
-  const diamondColor = useMemo(() => new THREE.Color(DIAMOND.COLOR), []); // 8
-  const fallbackMat = useMemo(                                     // 9
+  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);         
+  const envTex = scene.environment as THREE.Texture | null;        
+  const diamondColor = useMemo(() => new THREE.Color(DIAMOND.COLOR), []); 
+  const fallbackMat = useMemo(                                     
     () =>
       new THREE.MeshStandardMaterial({
         color: new THREE.Color(FALLBACK.COLOR),

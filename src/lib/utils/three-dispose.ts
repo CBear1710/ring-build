@@ -1,19 +1,28 @@
 import * as THREE from "three";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+
+function disposeMaterial(mat: THREE.Material | null | undefined) {
+  if (!mat) return;
+  // Dispose any textures referenced by the material
+  Object.values(mat as unknown as Record<string, unknown>).forEach((v) => {
+    const tex = v as THREE.Texture;
+    if ((tex as any)?.isTexture) tex.dispose();
+  });
+  mat.dispose();
+}
 
 export function disposeObject3D(root: THREE.Object3D) {
-  root.traverse((o: any) => {
-    if (o?.isMesh) {
-      o.geometry?.dispose?.();
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      mats?.forEach((m) => {
-        if (!m) return;
-        // Dispose mọi texture user-owned trên material
-        for (const k in m) {
-          const v = (m as any)[k];
-          if (v?.isTexture) v.dispose?.();
-        }
-        m.dispose?.();
-      });
+  root.traverse((obj: THREE.Object3D) => {
+    const mesh = obj as THREE.Mesh;
+    if ((mesh as any)?.isMesh) {
+      mesh.geometry?.dispose?.();
+
+      const materials: Array<THREE.Material | null | undefined> = Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material];
+
+      materials.forEach((m: THREE.Material | null | undefined) => disposeMaterial(m));
     }
   });
 }

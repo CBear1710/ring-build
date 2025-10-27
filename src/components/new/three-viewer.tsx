@@ -62,7 +62,7 @@ function useAutoFrame(
   deps: unknown[],
   padding = 1.15
 ) {
-  const { camera, size } = useThree();
+  const { camera, size, invalidate } = useThree();
 
   useLayoutEffect(() => {
     const root = groupRef.current;
@@ -105,11 +105,12 @@ function useAutoFrame(
     controls.minDistance = minR;
     controls.maxDistance = maxR;
 
-    persp.near = Math.max(0.005, keepRadius / 400); // slightly increase near to avoid banding
+    persp.near = Math.max(0.005, keepRadius / 400);
     persp.far = Math.max(persp.near + 1, keepRadius * 300);
     persp.updateProjectionMatrix();
 
     controls.update?.();
+    invalidate(); // ← ensure a frame renders after camera/controls changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupRef, controlsRef, size.width, size.height, ...deps]);
 }
@@ -122,7 +123,7 @@ function SceneContent() {
   const engravingText = useConfigStore((s) => s.engravingText);
 
   const controlsRef = useRef<any>(null);
-  const refRoot = useLoader(OBJLoader, "/models/ring_4.obj"); // used as anchor, NOT add to scene
+  const refRoot = useLoader(OBJLoader, "/models/ring_4.obj"); // anchor only (not added to scene)
 
   const ringGroup = useRef<THREE.Group | null>(null);
   const shankG = useRef<THREE.Group | null>(null);
@@ -132,7 +133,7 @@ function SceneContent() {
   const { setControls } = useView();
   const { invalidate } = useThree();
 
-  // OrbitControls -> invalidate only when changed (not affected by DPR)
+  // OrbitControls -> redraw only when changed
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -170,22 +171,34 @@ function SceneContent() {
 
   const [layoutTick, setLayoutTick] = useState(0);
   useLayoutEffect(() => {
-    if (anchors.shankA && shankG.current)
+    let mutated = false;
+
+    if (anchors.shankA && shankG.current) {
       copyWorldPR(anchors.shankA, shankG.current);
-    if (anchors.headA && headG.current)
+      mutated = true;
+    }
+    if (anchors.headA && headG.current) {
       copyWorldPR(anchors.headA, headG.current);
+      mutated = true;
+    }
 
     if (stoneG.current) {
       if (anchors.stoneA) {
         copyWorldPR(anchors.stoneA, stoneG.current);
+        mutated = true;
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
+        mutated = true;
         requestAnimationFrame(() => {
-          if (headG.current && stoneG.current)
+          if (headG.current && stoneG.current) {
             snapStoneToHead(headG.current, stoneG.current);
+            invalidate(); // ← draw after the snap to head
+          }
         });
       }
     }
+
+    if (mutated) invalidate(); // ← draw after immediate transforms
     setLayoutTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
@@ -235,10 +248,10 @@ export default function ThreeViewer() {
       <Canvas
         frameloop="demand"
         shadows={false}
-        dpr={[1, 1.5]} // lighter GPU
+        dpr={[1, 1.5]}
         camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 300 }}
         gl={{
-          antialias: false, // avoid extra with DPR>1
+          antialias: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
