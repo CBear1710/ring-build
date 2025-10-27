@@ -1,4 +1,3 @@
-// lib/ring-configurator/constants.ts
 import type { EngravingFont } from "@/lib/engraving-fonts";
 import type { Metal, Purity } from "@/store/configurator";
 import type { MetalType, RingStyle, StoneShape } from "./types";
@@ -47,9 +46,13 @@ export const ENGRAVING_FONT_PREVIEWS = [
 }>;
 
 export const RING_SIZES = Array.from({ length: 21 }, (_, i) => {
-  const value = 2 + i * 0.5;
-  const mm = 41.5 + i * 2;
-  return { value, label: `${value} (${mm.toFixed(1)}mm)` };
+  const value = 2 + i * 0.5;        
+  const mm = 41.5 + i * 2;          
+  return {
+    value,
+    mm,                              
+    label: `${value} (${mm.toFixed(1)}mm)`,
+  };
 });
 
 export const CARAT_RANGE = {
@@ -75,7 +78,7 @@ export const RING_STYLES: {
 export const METAL_TYPES: {
   value: MetalType;
   label: string;
-  karat: Purity;      
+  karat: Purity;
   metal: Metal;
   backgroundColor: string;
 }[] = [
@@ -155,11 +158,28 @@ export const METAL_TYPES: {
     value: "platinum",
     label: "Platinum",
     metal: "platinum",
-    karat: null, 
+    karat: null,
     backgroundColor:
       "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },
 ];
+
+export const SUMMARY_LABEL_MAP: Record<string, string> = {
+  style: "Style",
+  metal: "Metal",
+  ringSize: "Ring Size",
+  shape: "Shape",
+  carat: "Carat",
+  engraving: "Engraving",
+  engravingFont: "Engraving Font",
+};
+
+export const METAL_NAME_MAP: Record<string, string> = {
+  white: "White Gold",
+  yellow: "Yellow Gold",
+  rose: "Rose Gold",
+  platinum: "Platinum",
+};
 
 export const FACEBOOK_SHARE_BASE =
   "https://www.facebook.com/sharer/sharer.php?u=";
@@ -178,3 +198,4 @@ export const SHARE_PARAM_KEYS = [
 ] as const;
 
 export const COPY_FEEDBACK_DURATION = 1200 as const;
+export const SHARE_TOAST_SUCCESS = "Link copied to clipboard";

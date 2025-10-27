@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { disposeObject3D } from "@/lib/utils/three-dispose";
 import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -101,10 +102,12 @@ const METAL_TINT: Record<
 };
 
 type AnyMetalMat = MeshStandardMaterial | MeshPhysicalMaterial;
+
 function tintMetal(root: Object3D, metal: Metal) {
   const { color, roughness, metalness, envMapIntensity } = METAL_TINT[metal];
   root.traverse((o) => {
-    const m = (o as Mesh).material as AnyMetalMat | AnyMetalMat[] | undefined;
+    const mesh = o as Mesh;
+    const m = mesh.material as AnyMetalMat | AnyMetalMat[] | undefined;
     if (!m) return;
     const apply = (mat: AnyMetalMat) => {
       if (!("color" in mat)) return;
@@ -139,7 +142,6 @@ function normalizeHeadToSeat_bbox(child: Object3D) {
 
   const h = box.max.y - box.min.y;
   const seatYW = box.min.y + SEAT_ALPHA * h;
-
   const seatWorld = new THREE.Vector3(centerW.x, seatYW, centerW.z);
 
   const parent = child.parent ?? child;
@@ -201,7 +203,6 @@ function normalizeHeadToSeat_slice(child: Object3D) {
   }
 
   const seatWorld = new THREE.Vector3(midX, seatY_raw, midZ);
-
   const parent = child.parent ?? child;
   const seatLocal = seatWorld.clone();
   parent.worldToLocal(seatLocal);
@@ -214,19 +215,18 @@ export default function HeadModel({
   shape,
   carat,
   metal,
-  onReady, // ← new
+  onReady, // optional
 }: {
   shape: ShapeKey;
   carat: number;
   metal: Metal;
-  onReady?: (wrapper: Group) => void; // ← new
+  onReady?: (wrapper: Group) => void;
 }) {
   const url = useMemo(() => HEAD_TO_SRC[shape], [shape]);
   const { scene } = useGLTF(url);
 
   const wrapper = useRef<Group | null>(null);
   const childRef = useRef<Object3D | null>(null);
-
   const baseYScaleRef = useRef<number>(1);
 
   const computeHeadXZ = (shapeKey: ShapeKey, caratVal: number) => {
@@ -243,11 +243,14 @@ export default function HeadModel({
   useEffect(() => {
     if (!wrapper.current) return;
 
+    // clear old + dispose
     if (childRef.current) {
+      disposeObject3D(childRef.current);
       wrapper.current.remove(childRef.current);
       childRef.current = null;
     }
 
+    // clone new from GLTF cache
     const child = scene.clone(true);
     wrapper.current.add(child);
     childRef.current = child;
@@ -255,11 +258,20 @@ export default function HeadModel({
     child.traverse((o) => {
       const mesh = o as Mesh;
       if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        // Canvas is shadows={false} -> set false to light pipeline
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+
+        // Clone material per instance to avoid tint affecting cache
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((m) => m?.clone?.() ?? m);
+        } else {
+          mesh.material = (mesh.material as any)?.clone?.() ?? mesh.material;
+        }
       }
     });
 
+    // Center seat: use slice for heart/pear, use bbox for others
     if (shape === "heart" || shape === "pear") {
       normalizeHeadToSeat_slice(child);
     } else {
@@ -268,27 +280,40 @@ export default function HeadModel({
 
     baseYScaleRef.current = child.scale.y || 1;
 
+    // Apply metal tint
     tintMetal(child, metal);
 
+    // Scale XZ according to carat, Y keep base
     const xz = computeHeadXZ(shape, carat);
     const y = baseYScaleRef.current * HEAD_BASE_SCALE_Y;
     child.scale.set(xz, y, xz);
     child.updateMatrixWorld(true);
 
-    // 🔔 Tell parent the head wrapper is fully ready (next frame to ensure matrices are baked)
+    // Notify parent that it's ready (if any)
     requestAnimationFrame(() => {
       if (!wrapper.current) return;
       wrapper.current.updateWorldMatrix(true, true);
       onReady?.(wrapper.current);
     });
+
+    // cleanup on unmount/dep change
+    return () => {
+      if (wrapper.current && childRef.current) {
+        disposeObject3D(childRef.current);
+        wrapper.current.remove(childRef.current);
+        childRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, url, shape]);
 
+  // Re-tint when metal changes
   useEffect(() => {
     if (!childRef.current) return;
     tintMetal(childRef.current, metal);
   }, [metal]);
 
+  // Rescale when carat/shape changes
   useEffect(() => {
     const child = childRef.current;
     if (!child) return;
@@ -301,4 +326,5 @@ export default function HeadModel({
   return <group ref={wrapper} />;
 }
 
+// Preload GLBs
 (Object.values(HEAD_TO_SRC) as string[]).forEach((p) => useGLTF.preload(p));

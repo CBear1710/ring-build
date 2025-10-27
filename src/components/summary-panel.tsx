@@ -1,9 +1,10 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { useMemo } from "react";
 import { useConfigStore } from "@/store/configurator";
-import { useMemo, useState } from "react";
 import { ShareActions } from "./ring-configurator/share-actions";
+import { RING_SIZES } from "@/lib/ring-configurator/constants";
 
 type Props = { className?: string };
 
@@ -42,11 +43,6 @@ function titleCase(s: string) {
   return s.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function ringSizeToCircumferenceMM(usSize: number): number {
-  const diameter = 11.654 + 0.8128 * usSize;
-  return Math.PI * diameter;
-}
-
 function metalLabel(
   metal: string | undefined,
   purity: string | number | null | undefined
@@ -79,60 +75,8 @@ export default function SummaryPanel({ className = "" }: Props) {
       ? Number(ringSizeRaw)
       : undefined;
 
-  const ringSizeMM =
-    ringSizeNum != null ? ringSizeToCircumferenceMM(ringSizeNum) : undefined;
-
-  const [copied, setCopied] = useState(false);
-
-  function buildShareUrl() {
-    const params = new URLSearchParams({
-      style: String(style ?? ""),
-      metal: String(metal ?? ""),
-      purity: purity != null ? String(purity) : "",
-      size: ringSizeNum != null ? String(ringSizeNum) : "",
-      shape: String(shape ?? ""),
-      carat: String(carat ?? ""),
-      engraving: String(engravingText ?? ""),
-      font: engravingFontKey,
-    });
-    const shareUrl = `${window.location.origin}${
-      window.location.pathname
-    }?${params.toString()}`;
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      shareUrl
-    )}`;
-    return { shareUrl, fbUrl };
-  }
-
-  async function copyToClipboard(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function copyLink() {
-    const { shareUrl } = buildShareUrl();
-    const ok = await copyToClipboard(shareUrl);
-    setCopied(ok);
-    if (ok) setTimeout(() => setCopied(false), 1200);
-  }
-
-  function openCenteredPopup(url: string, name: string, w = 600, h = 480) {
-    const left = (window.innerWidth - w) / 2;
-    const top = (window.innerHeight - h) / 2;
-    const features = `width=${w},height=${h},left=${left},top=${top},menubar=0,toolbar=0,status=0,scrollbars=1,resizable=1`;
-    window.open(url, name, features)?.focus();
-  }
-
-  async function handleShareFacebook(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    const { fbUrl } = buildShareUrl();
-    openCenteredPopup(fbUrl, "fbshare");
-  }
+  const sizeOpt = RING_SIZES.find((o) => o.value === ringSizeNum);
+  const ringSizeMM = sizeOpt?.mm;
 
   const showEngraving = (engravingText ?? "").trim().length > 0;
 
@@ -152,7 +96,8 @@ export default function SummaryPanel({ className = "" }: Props) {
         ringSizeNum != null ? (
           <div className="flex flex-col items-end text-right">
             <span>
-              {ringSizeNum} ({(ringSizeMM ?? 0).toFixed(1)} mm)
+              {ringSizeNum}
+              {ringSizeMM != null ? ` (${ringSizeMM.toFixed(1)} mm)` : ""}
             </span>
             <span className="text-xs text-black/50">(US, MX, CA)</span>
           </div>
@@ -196,54 +141,37 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   return (
     <aside className={["w-full mx-auto", className].join(" ")}>
-      {/* Underline directly under the external SUMMARY header */}
       <div className="border-b border-black/60 mb-2" />
 
-      <div className="divide-y divide-black/5">
+      <div>
         {rows.map(({ group, items }) => (
-          <section key={group} className="py-2 first:pt-0 last:pb-0">
-            <div className="mb-1 text-xs sm:text-sm font-semibold tracking-wide text-black uppercase">
-              {group}
+          <section key={group} className="py-3 first:pt-0 last:pb-0">
+            <div className="mb-2">
+              <div className="text-xs sm:text-sm font-semibold tracking-wide text-black uppercase">
+                {group}
+              </div>
             </div>
 
             <dl className="space-y-1 sm:space-y-1.5">
               {items.map(({ k, v }) => {
-                const underlineRow = k === "metal" || k === "carat"; // darker lines for these
-
-                if (k === "engraving") {
-                  return (
-                    <div key={k} className="w-full">
-                      <div className="flex items-start justify-between gap-2">
-                        <dt className="text-xs sm:text-sm text-black">
-                          {labelMap[k] ?? titleCase(k)}
-                        </dt>
-                        <div className="text-xs sm:text-sm font-medium opacity-0">—</div>
-                      </div>
-                      <dd
-                        className={[
-                          "mt-0.5 text-xs sm:text-sm font-medium text-black",
-                          "text-right whitespace-normal break-all",
-                        ].join(" ")}
-                        title={typeof v === "string" ? v : undefined}
-                      >
-                        {String(v)}
-                      </dd>
-                    </div>
-                  );
-                }
-
                 return (
                   <div
                     key={k}
-                    className={[
-                      "flex items-start justify-between gap-2",
-                      underlineRow ? "border-b border-black/60 pb-2" : "",
-                    ].join(" ")}
+                    className="flex items-start justify-between gap-2"
                   >
                     <dt className="text-xs sm:text-sm text-black shrink-0">
                       {labelMap[k] ?? titleCase(k)}
                     </dt>
-                    <dd className="text-xs sm:text-sm font-medium text-black text-right overflow-hidden whitespace-nowrap text-ellipsis grow">
+                    <dd
+                      className={[
+                        "text-xs sm:text-sm font-medium text-black text-right",
+                        "whitespace-normal break-words",
+                        "overflow-hidden",
+                      ].join(" ")}
+                      title={
+                        typeof v === "string" ? (v.length > 0 ? v : undefined) : undefined
+                      }
+                    >
                       {v || "—"}
                     </dd>
                   </div>

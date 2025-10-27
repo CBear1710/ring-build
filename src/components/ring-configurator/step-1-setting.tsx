@@ -6,7 +6,12 @@ import { useConfigStore } from "@/store/configurator";
 import { RotateCcw } from "lucide-react";
 import Image from "next/image";
 
-export function Step1Setting() {
+
+interface Step1SettingProps {
+  onReset: () => void;
+}
+
+export function Step1Setting({ onReset }: Step1SettingProps) {
   const style = useConfigStore((s) => s.style);
   const metal = useConfigStore((s) => s.metal);
   const purity = useConfigStore((s) => s.purity);
@@ -18,12 +23,6 @@ export function Step1Setting() {
   const selectedMetal = METAL_TYPES.find((m) => {
     return m.metal === metal && m.karat === purity;
   });
-
-  const handleReset = () => {
-    setStyle("plain");
-    setMetal("white");
-    setPurity("18k");
-  };
 
   return (
     <div className="">
@@ -37,7 +36,7 @@ export function Step1Setting() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleReset}
+          onClick={onReset}
           className="rounded-none text-sm text-black gap-2 bg-transparent border-[#ddd] hover:bg-transparent hover:opacity-90"
         >
           Reset <RotateCcw className="h-4 w-4" />

@@ -1,12 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
-"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-import * as THREE from "three";
-import React, { useMemo, useRef, useEffect } from "react";
-import { useThree, useFrame } from "@react-three/fiber";
 import { useConfigStore } from "@/store/configurator";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
 
 type Props = { sourceMesh: THREE.Mesh | null };
 
@@ -16,16 +16,32 @@ const TEXT_CANVAS_SCALE = 2;
 
 const styleTextureRules: Record<
   string,
-  { mirrorHorizontally: boolean; flipV?: boolean; verticalFill?: number; verticalCenter?: number }
+  {
+    mirrorHorizontally: boolean;
+    flipV?: boolean;
+    verticalFill?: number;
+    verticalCenter?: number;
+  }
 > = {
-  plain:       { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
-  wide_plain:  { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
-  cathedral:   { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
-  knife:       { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
-  split:       { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
-  twisted:     { mirrorHorizontally: true,  verticalFill: 0.92, verticalCenter: 0.5 },
+  plain: { mirrorHorizontally: true, verticalFill: 0.92, verticalCenter: 0.5 },
+  wide_plain: {
+    mirrorHorizontally: true,
+    verticalFill: 0.92,
+    verticalCenter: 0.5,
+  },
+  cathedral: {
+    mirrorHorizontally: true,
+    verticalFill: 0.92,
+    verticalCenter: 0.5,
+  },
+  knife: { mirrorHorizontally: true, verticalFill: 0.92, verticalCenter: 0.5 },
+  split: { mirrorHorizontally: true, verticalFill: 0.92, verticalCenter: 0.5 },
+  twisted: {
+    mirrorHorizontally: true,
+    verticalFill: 0.92,
+    verticalCenter: 0.5,
+  },
 };
-
 const verticalOffsetByStyle: Record<string, number> = {
   plain: 0.0,
   wide_plain: 1.2,
@@ -53,21 +69,19 @@ export default function EngravingModel({ sourceMesh }: Props) {
 
   const { gl, invalidate } = useThree();
 
-  // --- Initial sync so it’s correct BEFORE first interaction (important on frameloop="demand")
+  // --- Initial sync BEFORE first paint
   useEffect(() => {
     if (!rootRef.current || !sourceMesh) return;
-    // copy world matrix once
     rootRef.current.matrix.copy(sourceMesh.matrixWorld);
     rootRef.current.matrix.decompose(
       rootRef.current.position,
       rootRef.current.quaternion,
       rootRef.current.scale
     );
-    // ensure a paint happens even on demand-loop canvases
     invalidate();
   }, [sourceMesh, style, engravingText, invalidate]);
 
-  // --- Continuous sync every frame (keeps it glued during camera/orbit updates)
+  // --- Continuous sync per frame
   useFrame(() => {
     if (!rootRef.current || !sourceMesh) return;
     rootRef.current.matrix.copy(sourceMesh.matrixWorld);
@@ -80,11 +94,16 @@ export default function EngravingModel({ sourceMesh }: Props) {
 
   const fontFamily = useMemo(() => {
     switch (engravingFontKey) {
-      case "regular": return "Segoe UI";
-      case "italics": return "italic Segoe UI";
-      case "script":  return "Brush Script MT, Segoe Script, cursive";
-      case "roman":   return "Times New Roman, Times, serif";
-      default:        return "Arial";
+      case "regular":
+        return "Segoe UI";
+      case "italics":
+        return "italic Segoe UI";
+      case "script":
+        return "Brush Script MT, Segoe Script, cursive";
+      case "roman":
+        return "Times New Roman, Times, serif";
+      default:
+        return "Arial";
     }
   }, [engravingFontKey]);
 
@@ -100,11 +119,6 @@ export default function EngravingModel({ sourceMesh }: Props) {
 
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, cw, ch);
-
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
 
     const italic = /italic/i.test(fontFamily) ? "italic" : "normal";
     const family = fontFamily.replace(/italic/gi, "").trim() || "Arial";
@@ -144,7 +158,10 @@ export default function EngravingModel({ sourceMesh }: Props) {
   if (!engravingText?.trim() || !sourceMesh?.geometry) return null;
 
   const edges = useMemo(
-    () => (SHOW_DEBUG_WIREFRAME ? new THREE.EdgesGeometry(sourceMesh.geometry) : null),
+    () =>
+      SHOW_DEBUG_WIREFRAME
+        ? new THREE.EdgesGeometry(sourceMesh.geometry)
+        : null,
     [sourceMesh.geometry]
   );
   useEffect(() => () => edges?.dispose(), [edges]);
@@ -153,9 +170,13 @@ export default function EngravingModel({ sourceMesh }: Props) {
 
   return (
     <group ref={rootRef}>
-      <group position={[0, localYShift, 0]} rotation={ENGRAVING_ROTATION} scale={ENGRAVING_SCALE}>
+      <group
+        position={[0, localYShift, 0]}
+        rotation={ENGRAVING_ROTATION}
+        scale={ENGRAVING_SCALE}
+      >
         {SHOW_DEBUG_WIREFRAME && edges && (
-          <lineSegments geometry={sourceMesh.geometry} renderOrder={998}>
+          <lineSegments geometry={edges} renderOrder={998}>
             <lineBasicMaterial color="#ffffff" depthTest={false} />
           </lineSegments>
         )}

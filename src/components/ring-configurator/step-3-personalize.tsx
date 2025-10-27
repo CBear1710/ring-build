@@ -12,7 +12,6 @@ import {
 import { RotateCcw } from "lucide-react";
 import Image from "next/image";
 
-import type { EngravingFont } from "@/lib/engraving-fonts";
 import { FONT_FALLBACKS } from "@/lib/engraving-fonts";
 import {
   ENGRAVING_FONT_PREVIEWS,
@@ -21,11 +20,11 @@ import {
 } from "@/lib/ring-configurator/constants";
 import { useConfigStore } from "@/store/configurator";
 
-function getSizeMM(size: number) {
-  return (11.63 + (size - 1) * 0.4 * 2.54).toFixed(1);
+interface Step3PersonalizeProps {
+  onReset: () => void;
 }
 
-export function Step3Personalize() {
+export function Step3Personalize({ onReset }: Step3PersonalizeProps) {
   const ringSize = useConfigStore((s) => s.ringSize);
   const engravingText = useConfigStore((s) => s.engravingText);
   const engravingFont = useConfigStore((s) => s.engravingFont);
@@ -35,12 +34,8 @@ export function Step3Personalize() {
   const setEngravingFont = useConfigStore((s) => s.setEngravingFont);
   const setEngravingFontUrl = useConfigStore((s) => s.setEngravingFontUrl);
 
-  const handleReset = () => {
-    setRingSize(2);
-    setEngravingText("");
-    setEngravingFont("regular" as EngravingFont);
-    setEngravingFontUrl(undefined);
-  };
+  const sizeOpt = RING_SIZES.find((o) => o.value === ringSize);
+  const mm = sizeOpt?.mm;
 
   return (
     <div>
@@ -49,19 +44,21 @@ export function Step3Personalize() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleReset}
+          onClick={onReset}
           className="rounded-none text-sm text-black gap-2 bg-transparent border-[#ddd] hover:bg-transparent hover:opacity-90"
         >
           Reset <RotateCcw className="h-4 w-4" />
         </Button>
       </div>
 
+      {/* Ring Size */}
       <div className="mt-5">
         <div className="flex items-center justify-between">
           <label className="text-base text-[#333]">
             Ring Size:{" "}
             <span className="font-bold">
-              {ringSize} ({getSizeMM(ringSize)}mm)
+              {ringSize}
+              {mm != null ? ` (${mm.toFixed(1)}mm)` : ""}
             </span>
           </label>
           <a
@@ -91,6 +88,7 @@ export function Step3Personalize() {
         </Select>
       </div>
 
+      {/* Engraving text */}
       <div className="mt-5">
         <div className="flex items-center">
           <label className="min-w-[133px] text-[#333]">Engraving:</label>
@@ -113,6 +111,7 @@ export function Step3Personalize() {
         </div>
       </div>
 
+      {/* Engraving fonts (image buttons) */}
       <div className="mt-5">
         <div className="grid grid-cols-2 gap-3">
           {ENGRAVING_FONT_PREVIEWS.map((f) => {

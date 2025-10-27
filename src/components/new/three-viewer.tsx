@@ -3,7 +3,7 @@
 
 import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
-import {
+import React, {
   Suspense,
   useEffect,
   useLayoutEffect,
@@ -14,13 +14,13 @@ import {
 import * as THREE from "three";
 import { OBJLoader } from "three-stdlib";
 
-import EngravingModel from "@/components/engraving-model";
-import HeadModel from "@/components/head-model";
-import ShankModel from "@/components/shank-model";
-import StoneModel from "@/components/stone-model";
 import ViewAnimator from "@/components/view-animator";
 import { useView } from "@/components/view-context";
 import { useConfigStore } from "@/store/configurator";
+import HeadModel from "../head-model";
+import EngravingModel from "./engraving-model";
+import ShankModel from "./shank-model";
+import StoneModel from "./stone-model";
 
 function findByName(root: THREE.Object3D, name: string) {
   let hit: THREE.Object3D | null = null;
@@ -29,11 +29,9 @@ function findByName(root: THREE.Object3D, name: string) {
   });
   return hit;
 }
-
 function isMesh(o: any): o is THREE.Mesh {
   return !!o && o.isMesh === true;
 }
-
 function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   src.updateWorldMatrix(true, true);
   const p = new THREE.Vector3();
@@ -44,7 +42,6 @@ function copyWorldPR(src: THREE.Object3D, dst: THREE.Object3D) {
   dst.scale.set(1, 1, 1);
   dst.updateMatrixWorld(true);
 }
-
 function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   headG.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(headG);
@@ -89,7 +86,6 @@ function useAutoFrame(
     const fitDist = Math.max(distV, distH);
 
     const newTarget = sphere.center.clone();
-
     const currentTarget = controls.target.clone();
     const curRadius = camera.position.distanceTo(currentTarget);
     const rawKeep = isFinite(curRadius) && curRadius > 0 ? curRadius : fitDist;
@@ -109,7 +105,7 @@ function useAutoFrame(
     controls.minDistance = minR;
     controls.maxDistance = maxR;
 
-    persp.near = Math.max(0.005, keepRadius / 600);
+    persp.near = Math.max(0.005, keepRadius / 400); // slightly increase near to avoid banding
     persp.far = Math.max(persp.near + 1, keepRadius * 300);
     persp.updateProjectionMatrix();
 
@@ -126,7 +122,7 @@ function SceneContent() {
   const engravingText = useConfigStore((s) => s.engravingText);
 
   const controlsRef = useRef<any>(null);
-  const refRoot = useLoader(OBJLoader, "/models/ring_4.obj");
+  const refRoot = useLoader(OBJLoader, "/models/ring_4.obj"); // used as anchor, NOT add to scene
 
   const ringGroup = useRef<THREE.Group | null>(null);
   const shankG = useRef<THREE.Group | null>(null);
@@ -134,32 +130,18 @@ function SceneContent() {
   const stoneG = useRef<THREE.Group | null>(null);
 
   const { setControls } = useView();
-  const { gl, invalidate } = useThree();
+  const { invalidate } = useThree();
 
+  // OrbitControls -> invalidate only when changed (not affected by DPR)
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
-
-    const onStart = () => {
-      gl.setPixelRatio(0.75);
-      invalidate();
-    };
     const onChange = () => invalidate();
-    const onEnd = () => {
-      gl.setPixelRatio(window.devicePixelRatio);
-      invalidate();
-    };
-
-    controls.addEventListener("start", onStart);
     controls.addEventListener("change", onChange);
-    controls.addEventListener("end", onEnd);
-
     return () => {
-      controls.removeEventListener("start", onStart);
       controls.removeEventListener("change", onChange);
-      controls.removeEventListener("end", onEnd);
     };
-  }, [gl, invalidate]);
+  }, [invalidate]);
 
   useEffect(() => {
     setControls(controlsRef.current);
@@ -212,8 +194,6 @@ function SceneContent() {
 
   return (
     <>
-      <primitive object={refRoot} visible={false} />
-
       <group ref={ringGroup}>
         <group ref={shankG}>
           <ShankModel style={style as any} metal={metal as any} />
@@ -252,14 +232,13 @@ function SceneContent() {
 export default function ThreeViewer() {
   return (
     <div className="relative w-full h-[485px] md:h-full md:max-h-[680px] cursor-pointer bg-[#F8F8F8] rounded-none md:rounded-[20px]">
-      <div className="relative"></div>
       <Canvas
         frameloop="demand"
         shadows={false}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]} // lighter GPU
         camera={{ position: [0, 0.9, 2.4], fov: 35, near: 0.05, far: 300 }}
         gl={{
-          antialias: true,
+          antialias: false, // avoid extra with DPR>1
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
           outputColorSpace: THREE.SRGBColorSpace,
