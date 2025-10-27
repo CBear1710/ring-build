@@ -1,4 +1,3 @@
-// lib/ring-configurator/constants.ts
 import type { EngravingFont } from "@/lib/engraving-fonts";
 import type { Metal, Purity } from "@/store/configurator";
 import type { MetalType, RingStyle, StoneShape } from "./types";
@@ -165,6 +164,23 @@ export const METAL_TYPES: {
   },
 ];
 
+export const SUMMARY_LABEL_MAP: Record<string, string> = {
+  style: "Style",
+  metal: "Metal",
+  ringSize: "Ring Size",
+  shape: "Shape",
+  carat: "Carat",
+  engraving: "Engraving",
+  engravingFont: "Engraving Font",
+};
+
+export const METAL_NAME_MAP: Record<string, string> = {
+  white: "White Gold",
+  yellow: "Yellow Gold",
+  rose: "Rose Gold",
+  platinum: "Platinum",
+};
+
 export const FACEBOOK_SHARE_BASE =
   "https://www.facebook.com/sharer/sharer.php?u=";
 
@@ -182,3 +198,4 @@ export const SHARE_PARAM_KEYS = [
 ] as const;
 
 export const COPY_FEEDBACK_DURATION = 1200 as const;
+export const SHARE_TOAST_SUCCESS = "Link copied to clipboard";
