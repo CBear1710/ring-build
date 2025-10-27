@@ -1,4 +1,6 @@
 import * as THREE from "three";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 function disposeMaterial(mat: THREE.Material | null | undefined) {
   if (!mat) return;
