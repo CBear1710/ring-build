@@ -1,12 +1,11 @@
-/* eslint-disable prefer-const */
-"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-import { MeshRefractionMaterial } from "@react-three/drei";
-import { createPortal, useThree } from "@react-three/fiber";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { disposeObject3D } from "@/lib/utils/three-dispose";
+import { useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Group, Mesh, Object3D } from "three";
+import { Group, Material, Mesh, Object3D } from "three";
 import { GLTFLoader, OBJLoader } from "three-stdlib";
 
 // ----------------- MODEL SOURCES -----------------
@@ -22,7 +21,6 @@ const SHAPE_TO_SRC = {
   heart: "/models/heart.obj",
   asscher: "/models/asscher.obj",
 };
-
 type ShapeKey = keyof typeof SHAPE_TO_SRC;
 
 // ----------------- POSITION & SCALE TEMPLATES -----------------
@@ -51,7 +49,6 @@ function quantizeCarat(carat: number) {
   const q = Math.round(carat / CARAT_STEP_SIZE) * CARAT_STEP_SIZE;
   return Math.max(CARAT_MIN, Number(q.toFixed(2)));
 }
-
 function gainFromCaratDiscrete(carat: number) {
   const q = quantizeCarat(carat);
   const stepsFrom1 = Math.round((q - 1.0) / CARAT_STEP_SIZE);
@@ -70,7 +67,6 @@ function normalizeStoneToGirdle(node: Object3D) {
   node.position.sub(centerLocal);
   node.updateMatrixWorld(true);
 }
-
 function applyTemplateSizing(
   content: Object3D,
   shape: ShapeKey,
@@ -84,28 +80,87 @@ function applyTemplateSizing(
   content.updateMatrixWorld(true);
 }
 
+// ----------------- ENV/ANGLE CHECK -----------------
+function useIsAngleMetalChrome() {
+  const { gl } = useThree(); // Three.WebGLRenderer
+  const [bad, setBad] = useState(false);
+
+  useEffect(() => {
+    const isChrome =
+      /Chrome/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
+
+    // Get actual WebGL context from renderer (correct API, correct type)
+    const ctx =
+      (gl.getContext?.() as
+        | WebGL2RenderingContext
+        | WebGLRenderingContext
+        | null) ?? null;
+
+    let rendererStr = "";
+    if (ctx) {
+      const ext = ctx.getExtension("WEBGL_debug_renderer_info") as any;
+      if (ext) {
+        try {
+          rendererStr = ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    const angleMetal = /Apple.*Metal/i.test(rendererStr);
+    setBad(isChrome && angleMetal);
+  }, [gl]);
+
+  return bad;
+}
+
 // ----------------- MAIN COMPONENT -----------------
 export default function StoneModel({
   shape,
   carat,
 }: {
-  shape: any;
-  carat: any;
+  shape: ShapeKey;
+  carat: number;
 }) {
-  const url = useMemo(() => SHAPE_TO_SRC[shape as ShapeKey], [shape]);
+  const url = useMemo(() => SHAPE_TO_SRC[shape], [shape]);
   const { scene } = useThree();
 
   const wrapper = useRef<Group | null>(null);
   const contentRef = useRef<Object3D | null>(null);
   const [meshes, setMeshes] = useState<Mesh[]>([]);
 
-  // Load or reload the stone model whenever shape changes
+  const envTex = scene.environment as THREE.Texture | null;
+  const isAngleMetalChrome = useIsAngleMetalChrome();
+
+  // Enable/disable refraction based on environment (Chrome + ANGLE/Metal => disable)
+  const ENABLE_REFRACTION = !isAngleMetalChrome;
+
+  // Shared Physical Material (transmission) for the stone
+  const sharedPhysicalMat = useMemo(() => {
+    const m = new THREE.MeshPhysicalMaterial({
+      transmission: 1,
+      thickness: 0.6,
+      roughness: 0.02,
+      metalness: 0,
+      ior: 2.44,
+      specularIntensity: 1,
+      attenuationColor: new THREE.Color("#d9e7ff"),
+      attenuationDistance: 0.6,
+      toneMapped: true,
+      envMapIntensity: 1.0,
+    });
+    if (envTex) m.envMap = envTex;
+    return m;
+  }, [envTex]);
+
+  // Load/reload stone when shape changes
   useEffect(() => {
     if (!wrapper.current) return;
     let aborted = false;
 
-    // Clear previous stone
+    // Clear old
     if (contentRef.current) {
+      disposeObject3D(contentRef.current);
       wrapper.current.remove(contentRef.current);
       contentRef.current = null;
       setMeshes([]);
@@ -114,8 +169,8 @@ export default function StoneModel({
     const applyLoaded = (loadedRoot: Object3D) => {
       if (aborted || !wrapper.current) return;
 
-      const loaded = loadedRoot.clone(true);
-      loaded.traverse((o) => (o.matrixAutoUpdate = true));
+      const loaded = loadedRoot; // avoid clone(true) if not needed
+      loaded.traverse((o) => ((o as any).matrixAutoUpdate = true));
 
       const content = new THREE.Group();
       content.name = "StoneContent";
@@ -126,14 +181,29 @@ export default function StoneModel({
 
       const list: Mesh[] = [];
       content.traverse((o) => {
-        const m = o as Mesh;
-        if (m.isMesh) {
-          m.castShadow = false;
-          m.receiveShadow = false;
-          m.layers.enable(1);
-          list.push(m);
+        const mm = o as Mesh;
+        if (mm.isMesh) {
+          mm.castShadow = false;
+          mm.receiveShadow = false;
+          mm.layers.enable(1);
+          list.push(mm);
         }
       });
+
+      // Assign material: dispose old material (Material | Material[])
+      list.forEach((mesh) => {
+        const prev: Material | Material[] | undefined = mesh.material as any;
+        if (Array.isArray(prev)) {
+          prev.forEach((mat) => mat?.dispose?.());
+        } else {
+          prev?.dispose?.();
+        }
+
+        // In this version, use PhysicalMaterial for safety.
+        // If really need refraction shader: create a single instance and share.
+        mesh.material = sharedPhysicalMat;
+      });
+
       setMeshes(list);
 
       normalizeStoneToGirdle(content);
@@ -142,51 +212,46 @@ export default function StoneModel({
 
     const isGLB = url.toLowerCase().endsWith(".glb");
     if (isGLB) {
-      new GLTFLoader().load(url, (gltf) => {
-        applyLoaded(
-          (gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D
-        );
-      });
+      const loader = new GLTFLoader();
+      loader.load(
+        url,
+        (gltf) => {
+          applyLoaded(
+            (gltf.scene || gltf.scenes?.[0] || new THREE.Group()) as Object3D
+          );
+        },
+        undefined,
+        () => {}
+      );
     } else {
-      new OBJLoader().load(url, (obj) => applyLoaded(obj));
+      const loader = new OBJLoader();
+      loader.load(url, (obj) => applyLoaded(obj));
     }
 
     return () => {
       aborted = true;
+      if (wrapper.current && contentRef.current) {
+        disposeObject3D(contentRef.current);
+        wrapper.current.remove(contentRef.current);
+        contentRef.current = null;
+        setMeshes([]);
+      }
     };
-  }, [url, shape, carat]);
+  }, [url, shape, carat, ENABLE_REFRACTION, sharedPhysicalMat]);
 
   // Re-apply scale when carat changes
   useEffect(() => {
     const content = contentRef.current;
-  
     if (!content) return;
     applyTemplateSizing(content, shape, carat);
   }, [carat, shape]);
 
-  const envTex = scene.environment as THREE.Texture | null;
+  // Cleanup shared material when unmount
+  useEffect(() => {
+    return () => {
+      sharedPhysicalMat?.dispose?.();
+    };
+  }, [sharedPhysicalMat]);
 
-  return (
-    <>
-      <group ref={wrapper} />
-      {envTex &&
-        meshes.map((mesh) => (
-          <React.Fragment key={mesh.uuid}>
-            {createPortal(
-              <MeshRefractionMaterial
-                envMap={envTex}
-                ior={2.44}
-                bounces={4}
-                aberrationStrength={0.01}
-                fresnel={0.05}
-                color="#d9e7ff"
-                toneMapped
-                fastChroma={false}
-              />,
-              mesh
-            )}
-          </React.Fragment>
-        ))}
-    </>
-  );
+  return <group ref={wrapper} />;
 }

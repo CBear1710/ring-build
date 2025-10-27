@@ -7,10 +7,10 @@ import { StepIndicator } from "@/components/ring-configurator/step-indicator";
 import { ViewControl } from "@/components/ring-configurator/view-control";
 import { Button } from "@/components/ui/button";
 import { ViewProvider } from "@/components/view-context";
-import Viewer from "@/components/viewer";
 import { useConfigStore } from "@/store/configurator";
 import { useState } from "react";
 import { DetailsModal } from "../details-modal";
+import ThreeViewer from "../new/three-viewer";
 import UrlSync from "../url-sync";
 import { ShareActions } from "./share-actions";
 
@@ -76,7 +76,10 @@ export default function RingConfiguratorClient() {
           <div className="gap-8 flex flex-col lg:flex-row md:mt-10 lg:mt-20">
             {/* Left: Ring Preview */}
             <div className="lg:w-[60%]">
-              <Viewer />
+              {/* <Viewer /> */}
+
+              <ThreeViewer />
+
               <ViewControl />
             </div>
 
