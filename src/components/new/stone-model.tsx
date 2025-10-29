@@ -30,15 +30,15 @@ const TEMPLATE_BASE: Record<
   ShapeKey,
   { base: [number, number, number]; pos: [number, number, number] }
 > = {
-  round: { base: [2.4, 2.4, 2.4], pos: [0, 0.8, 0] },
+  round: { base: [2.2, 2.2, 2.2], pos: [0, 0.8, 0] },
   princess: { base: [1.03, 1.03, 1.0], pos: [0, 0.5, 0] },
   cushion: { base: [0.9, 1.05, 0.9], pos: [0, 0.6, 0] },
   oval: { base: [0.9, 1.2, 1.15], pos: [0, 0.6, 0] },
-  radiant: { base: [1.75, 1.95, 1.9], pos: [-0.1, 0.6, 0] },
-  pear: { base: [0.95, 0.85, 1.0], pos: [0, 0.7, -0.5] },
+  radiant: { base: [1.75, 1.95, 1.9], pos: [0, 0.6, 0] },
+  pear: { base: [0.95, 0.85, 1.0], pos: [0, 0.7, 0] },
   emerald: { base: [1.05, 0.95, 1.1], pos: [0, 0.8, 0] },
   marquise: { base: [1.05, 1.05, 0.9], pos: [0, 0.7, 0] },
-  heart: { base: [0.75, 0.95, 0.7], pos: [0, 0.8, 0] },
+  heart: { base: [0.8, 0.95, 0.75], pos: [0.1, 0.8, 0.1] },
   asscher: { base: [0.83, 0.83, 0.9], pos: [0, 0.8, 0] },
 };
 
