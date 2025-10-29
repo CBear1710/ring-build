@@ -56,6 +56,12 @@ function snapStoneToHead(headG: THREE.Group, stoneG: THREE.Group) {
   stoneG.updateMatrixWorld(true);
 }
 
+function hasValidBounds(obj: THREE.Object3D | null): boolean {
+  if (!obj) return false;
+  const box = new THREE.Box3().setFromObject(obj);
+  return isFinite(box.min.x) && !box.isEmpty();
+}
+
 function useAutoFrame(
   groupRef: React.RefObject<THREE.Group | null>,
   controlsRef: React.RefObject<any>,
@@ -174,6 +180,9 @@ function SceneContent() {
   useLayoutEffect(() => {
     let mutated = false;
 
+    // reset placement when deps change; will be confirmed by the ready-check effect
+    setStonePlaced(false);
+
     if (anchors.shankA && shankG.current) {
       copyWorldPR(anchors.shankA, shankG.current);
       mutated = true;
@@ -183,20 +192,42 @@ function SceneContent() {
       mutated = true;
     }
 
-    if (stoneG.current) {
-      if (anchors.stoneA) {
-        copyWorldPR(anchors.stoneA, stoneG.current);
-        mutated = true;
-      } else if (headG.current) {
-        copyWorldPR(headG.current, stoneG.current);
-        snapStoneToHead(headG.current, stoneG.current);
-        mutated = true;
-      }
-      setStonePlaced(true);
-    }
+    // Do not place stone here unconditionally; wait until source bounds are valid
 
     if (mutated) invalidate(); // ← draw after immediate transforms
     setLayoutTick((t) => t + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchors, style, shape]);
+
+  // Wait until either anchor or head has valid bounds, then place and show stone
+  useEffect(() => {
+    let raf = 0;
+    let attempts = 0;
+
+    const tryPlace = () => {
+      const stone = stoneG.current;
+      const head = headG.current;
+      const anchor = anchors.stoneA;
+      if (!stone) return;
+
+      const source = anchor ?? head;
+      if (source && hasValidBounds(source)) {
+        copyWorldPR(source, stone);
+        if (!anchor && head) snapStoneToHead(head, stone);
+        setStonePlaced(true);
+        invalidate();
+        return;
+      }
+
+      if (attempts < 90) {
+        attempts++;
+        raf = requestAnimationFrame(tryPlace);
+      }
+    };
+
+    setStonePlaced(false);
+    raf = requestAnimationFrame(tryPlace);
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchors, style, shape]);
 
