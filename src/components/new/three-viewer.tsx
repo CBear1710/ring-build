@@ -17,8 +17,8 @@ import { OBJLoader } from "three-stdlib";
 import ViewAnimator from "@/components/view-animator";
 import { useView } from "@/components/view-context";
 import { useConfigStore } from "@/store/configurator";
-import HeadModel from "../head-model";
 import EngravingModel from "./engraving-model";
+import HeadModel from "./head-model";
 import ShankModel from "./shank-model";
 import StoneModel from "./stone-model";
 
@@ -129,6 +129,7 @@ function SceneContent() {
   const shankG = useRef<THREE.Group | null>(null);
   const headG = useRef<THREE.Group | null>(null);
   const stoneG = useRef<THREE.Group | null>(null);
+  const [stonePlaced, setStonePlaced] = useState(false);
 
   const { setControls } = useView();
   const { invalidate } = useThree();
@@ -188,14 +189,10 @@ function SceneContent() {
         mutated = true;
       } else if (headG.current) {
         copyWorldPR(headG.current, stoneG.current);
+        snapStoneToHead(headG.current, stoneG.current);
         mutated = true;
-        requestAnimationFrame(() => {
-          if (headG.current && stoneG.current) {
-            snapStoneToHead(headG.current, stoneG.current);
-            invalidate(); // ← draw after the snap to head
-          }
-        });
       }
+      setStonePlaced(true);
     }
 
     if (mutated) invalidate(); // ← draw after immediate transforms
@@ -222,7 +219,9 @@ function SceneContent() {
         </group>
 
         <group ref={stoneG}>
-          <StoneModel shape={shape as any} carat={carat} />
+          {stonePlaced ? (
+            <StoneModel shape={shape as any} carat={carat} />
+          ) : null}
         </group>
       </group>
 
