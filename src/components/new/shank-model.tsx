@@ -36,7 +36,7 @@ const METAL_TINT: Record<
   }
 > = {
   white: {
-    color: [0.93, 0.95, 1.0],
+    color: [0.78, 0.80, 0.83],
     metalness: 1.0,
     roughness: 0.06,
     envMapIntensity: 1.35,
@@ -60,7 +60,7 @@ const METAL_TINT: Record<
     clearcoatRoughness: 0.03,
   },
   platinum: {
-    color: [0.9, 0.92, 0.95],
+    color: [0.96, 0.97, 0.99],
     metalness: 1.0,
     roughness: 0.05,
     envMapIntensity: 1.4,
