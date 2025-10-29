@@ -141,7 +141,8 @@ export default function SummaryPanel({ className = "" }: Props) {
 
   return (
     <aside className={["w-full mx-auto", className].join(" ")}>
-      <div className="border-b border-black/60 mb-2" />
+      {/* ▼ change: visually thinner divider under SUMMARY */}
+      <div className="h-px bg-black/25 mb-2" />
 
       <div>
         {rows.map(({ group, items }) => (
@@ -154,10 +155,15 @@ export default function SummaryPanel({ className = "" }: Props) {
 
             <dl className="space-y-1 sm:space-y-1.5">
               {items.map(({ k, v }) => {
+                // ▼ change: add a hairline divider under the "metal" and "carat" rows
+                const underline = k === "metal" || k === "carat";
                 return (
                   <div
                     key={k}
-                    className="flex items-start justify-between gap-2"
+                    className={[
+                      "flex items-start justify-between gap-2",
+                      underline ? "pb-1.5 border-b border-black/20" : "",
+                    ].join(" ")}
                   >
                     <dt className="text-xs sm:text-sm text-black shrink-0">
                       {labelMap[k] ?? titleCase(k)}
