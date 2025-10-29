@@ -88,7 +88,7 @@ export const METAL_TYPES: {
     metal: "white",
     karat: "18k",
     backgroundColor:
-      "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
+      "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },
   {
     value: "18k-yellow",
@@ -112,7 +112,7 @@ export const METAL_TYPES: {
     metal: "white",
     karat: "14k",
     backgroundColor:
-      "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
+      "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },
   {
     value: "14k-yellow",
@@ -136,7 +136,7 @@ export const METAL_TYPES: {
     metal: "white",
     karat: "9k",
     backgroundColor:
-      "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
+      "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
   },
   {
     value: "9k-yellow",
@@ -160,7 +160,7 @@ export const METAL_TYPES: {
     metal: "platinum",
     karat: null,
     backgroundColor:
-      "linear-gradient(106.57deg, #AFABAB 0%, #EBEAEA 50%, #AFABAB 100%),linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45))",
+      "linear-gradient(106.57deg, rgba(175, 171, 171, 0.3) 0%, rgba(235, 234, 234, 0.3) 50%, rgba(175, 171, 171, 0.3) 100%)",
   },
 ];
 
