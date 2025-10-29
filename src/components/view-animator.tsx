@@ -22,7 +22,6 @@ export default function ViewAnimator() {
   const rafRef = useRef<number | null>(null);
   const lastViewRef = useRef<keyof typeof DIRS | "custom">("perspective");
 
-  // detect manual control use
   useEffect(() => {
     const c = controls;
     if (!c) return;
@@ -31,7 +30,7 @@ export default function ViewAnimator() {
     return () => c?.removeEventListener?.("start", onStart);
   }, [controls, setView]);
 
-  // handle auto rotation
+  // Handle auto rotation only 
   useEffect(() => {
     const c = controls as any;
     if (!c) return;
@@ -62,6 +61,11 @@ export default function ViewAnimator() {
       lastViewRef.current = "custom";
       return;
     }
+
+    if (view === "360") {
+      return;
+    }
+
     if (!controls) return;
 
     if (rafRef.current) {
@@ -76,10 +80,8 @@ export default function ViewAnimator() {
     const curTarget =
       (ctrl?.target as THREE.Vector3) ?? new THREE.Vector3(0, 2, 0);
 
-    // current distance (radius)
     const radius = curPos.distanceTo(curTarget);
 
-    // direction vector for new view
     const dir = DIRS[view] || DIRS.perspective;
 
     const goalPos = curTarget.clone().add(dir.clone().multiplyScalar(radius));
@@ -101,7 +103,7 @@ export default function ViewAnimator() {
         rafRef.current = requestAnimationFrame(step);
       } else {
         if (ctrl) ctrl.enabled = true;
-        lastViewRef.current = view;
+        lastViewRef.current = view as keyof typeof DIRS;
         rafRef.current = null;
       }
     };
