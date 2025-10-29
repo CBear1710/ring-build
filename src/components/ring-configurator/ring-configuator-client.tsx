@@ -22,7 +22,6 @@ const STEPS = [
 
 export default function RingConfiguratorClient() {
   const [currentStep, setCurrentStep] = useState(1);
-
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
 
   const setStyle = useConfigStore((s) => s.setStyle);
@@ -62,7 +61,7 @@ export default function RingConfiguratorClient() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen [&_button]:cursor-pointer [&_[role='button']]:cursor-pointer [&_a[href]]:cursor-pointer">
       <UrlSync />
 
       <ViewProvider>
@@ -76,10 +75,7 @@ export default function RingConfiguratorClient() {
           <div className="gap-8 flex flex-col lg:flex-row md:mt-10 lg:mt-20">
             {/* Left: Ring Preview */}
             <div className="lg:w-[60%]">
-              {/* <Viewer /> */}
-
               <ThreeViewer />
-
               <ViewControl />
             </div>
 
@@ -88,19 +84,15 @@ export default function RingConfiguratorClient() {
               <div className="flex flex-col">
                 <div className="flex-1">
                   {currentStep === 1 && <Step1Setting onReset={handleReset} />}
-
                   {currentStep === 2 && <Step2Stone onReset={handleReset} />}
-
-                  {currentStep === 3 && (
-                    <Step3Personalize onReset={handleReset} />
-                  )}
+                  {currentStep === 3 && <Step3Personalize onReset={handleReset} />}
                 </div>
 
                 <div className="mt-7 md:mt-10">
                   <div className="flex flex-col md:flex-row gap-5 md:gap-3">
                     <Button
                       onClick={handleNext}
-                      className="cursor-pointer md:flex-1 h-11 bg-[#0313B0] text-white text-sm font-bold uppercase hover:bg-[#0313B0] hover:opacity-90"
+                      className="md:flex-1 h-11 bg-[#0313B0] text-white text-sm font-bold uppercase hover:bg-[#0313B0] hover:opacity-90"
                       size="lg"
                     >
                       {getActionButtonText()}
