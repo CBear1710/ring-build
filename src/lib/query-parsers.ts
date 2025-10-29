@@ -13,7 +13,7 @@ export const metalParser = parseAsStringEnum([
 
 export const purityParser = parseAsNullableEnum([
   "9k", "14k", "18k"
-]).withDefault("9k");
+]).withDefault("18k");
 
 
 export const tabParser = parseAsStringEnum([
