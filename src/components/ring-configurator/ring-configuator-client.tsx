@@ -65,7 +65,7 @@ export default function RingConfiguratorClient() {
       <UrlSync />
 
       <ViewProvider>
-        <div className="mx-auto bg-white max-w-[1440px] pb-16 lg:px-20 lg:py-16">
+        <div className="mx-auto bg-white max-w-[1440px] pb-16 lg:px-20 lg:pb-16 pt-10">
           <StepIndicator
             currentStep={currentStep}
             steps={STEPS}
@@ -85,7 +85,9 @@ export default function RingConfiguratorClient() {
                 <div className="flex-1">
                   {currentStep === 1 && <Step1Setting onReset={handleReset} />}
                   {currentStep === 2 && <Step2Stone onReset={handleReset} />}
-                  {currentStep === 3 && <Step3Personalize onReset={handleReset} />}
+                  {currentStep === 3 && (
+                    <Step3Personalize onReset={handleReset} />
+                  )}
                 </div>
 
                 <div className="mt-7 md:mt-10">
