@@ -11,19 +11,27 @@ interface StepIndicatorProps {
   setCurrentStep: (step: number) => void;
 }
 
-export function StepIndicator({ currentStep, steps, setCurrentStep }: StepIndicatorProps) {
+export function StepIndicator({
+  currentStep,
+  steps,
+  setCurrentStep,
+}: StepIndicatorProps) {
   return (
     <div className="border border-[#ddd] h-[60px]">
       <div className="flex items-center gap-1 py-2">
         <div className="hidden lg:flex items-center gap-[10px]">
           <div className="text-black ml-7 text-sm text-[13px] font-semibold">
-            3D Ring Configurator
+            Design Your Ring
           </div>
           <ArrowLeftStep />
         </div>
         <div className="flex-1 flex items-center">
           {steps.map((step, index) => (
-            <div key={step.number} className="flex-1 flex items-center" onClick={() => setCurrentStep(step.number)}>
+            <div
+              key={step.number}
+              className="flex-1 flex items-center"
+              onClick={() => setCurrentStep(step.number)}
+            >
               {/* Chevron separator */}
               {index > 0 && <ArrowLeftStep />}
 
