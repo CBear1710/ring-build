@@ -58,7 +58,7 @@ export function ShareActions() {
       <button
         type="button"
         onClick={handleCopy}
-        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/20 hover:bg-black/5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/20 hover:bg-black/5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 cursor-pointer"
         aria-label="Copy share link"
         title="Copy share link"
       >
@@ -70,7 +70,7 @@ export function ShareActions() {
       <button
         type="button"
         onClick={handleShareFacebook}
-        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2]/40 cursor-pointer"
         aria-label="Share on Facebook"
         title="Share on Facebook"
       >
