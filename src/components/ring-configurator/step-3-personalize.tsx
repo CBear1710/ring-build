@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -72,15 +73,25 @@ export function Step3Personalize({ onReset }: Step3PersonalizeProps) {
         </div>
 
         <Select
+          {...({ modal: false } as any)} 
           value={String(ringSize)}
           onValueChange={(v) => setRingSize(parseFloat(v))}
         >
-          <SelectTrigger className="mt-[10px] min-h-[53px] w-full border border-[#ddd] bg-white">
-            <SelectValue />
+          <SelectTrigger className="mt-[10px] min-h-[53px] w-full border border-[#ddd] bg-white cursor-pointer">
+            <SelectValue placeholder="Select your ring size" />
           </SelectTrigger>
-          <SelectContent>
+
+          <SelectContent
+            position="popper"
+            sideOffset={6}
+            className="z-50 max-h-72 overflow-y-auto rounded-md border border-[#ddd] bg-white text-[#222] shadow-lg"
+          >
             {RING_SIZES.map((opt) => (
-              <SelectItem key={opt.value} value={String(opt.value)}>
+              <SelectItem
+                key={opt.value}
+                value={String(opt.value)}
+                className="cursor-pointer data-[highlighted]:bg-[#f2f2f2] data-[state=checked]:font-medium"
+              >
                 {opt.label}
               </SelectItem>
             ))}
@@ -130,7 +141,7 @@ export function Step3Personalize({ onReset }: Step3PersonalizeProps) {
                   "transition-all focus:outline-none",
                   active
                     ? "border-[#0313B0] bg-white"
-                    : "border-[#ddd] bg-[#F9F9F9] hover:bg-[#f2f2f2]",
+                    : "border-[#ddd] bg-[#F9F9F9] hover:bg-[#f2f2f2] cursor-pointer",
                 ].join(" ")}
               >
                 <Image
