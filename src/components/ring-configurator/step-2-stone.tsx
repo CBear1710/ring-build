@@ -196,7 +196,7 @@ export function Step2Stone({ onReset }: Step2StoneProps) {
         {/* Slider rail */}
         <div
           ref={railRef}
-          className="relative h-2 rounded-full bg-black/20"
+          className="relative h-2 rounded-full bg-black/20 cursor-pointer select-none"
           role="slider"
           aria-label="Carat"
           aria-valuemin={MIN}
@@ -214,7 +214,7 @@ export function Step2Stone({ onReset }: Step2StoneProps) {
           />
           {/* Thumb */}
           <div
-            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white border border-black/30 shadow"
+            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white border border-black/30 shadow cursor-grab active:cursor-grabbing"
             style={{ left: `${thumbLeftPx}px` }}
             aria-hidden
           />
