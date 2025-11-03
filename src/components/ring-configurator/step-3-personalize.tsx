@@ -72,9 +72,8 @@ export function Step3Personalize({ onReset }: Step3PersonalizeProps) {
           </a>
         </div>
 
-        {/* NOTE: your shadcn typings may not include the Radix `modal` prop. */}
         <Select
-          {...({ modal: false } as any)} // allow page scroll; remove invisible overlay
+          {...({ modal: false } as any)} 
           value={String(ringSize)}
           onValueChange={(v) => setRingSize(parseFloat(v))}
         >
