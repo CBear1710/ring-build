@@ -10,7 +10,7 @@ export default function Footer() {
           {/* BRAND — spans 2 cols & 2 rows at xl */}
           <div className="footer-col footer-col--brand xl:order-1 xl:col-span-2 xl:row-span-2">
             <Image
-              src="/brand/kvytech-white.svg"
+              src="/brand/Kvytech-white.svg"
               alt="KVY Technology"
               width={160}
               height={40}
